@@ -1,44 +1,54 @@
-# MicroPitch - 1-5 Minute Speed Pitching Platform
+# MicroPitch - 5-Minute Speed Pitching Platform
 
-A revolutionary platform where founders can pitch their ideas to VCs and angel investors through lightning-fast, pay-per-chat pitch sessions.
+A modern platform connecting investors and founders through timed pitch sessions with integrated Base Pay payments and real-time communication.
 
 ## 🚀 Features
 
-### Core Functionality
-- **Speed Pitching**: 1-5 minute pitch sessions with real-time billing
-- **Per-Second Billing**: Transparent pricing using USDC on Base
-- **NFT Certificates**: Receive verifiable NFT certificates for completed sessions
-- **AI Practice Agent**: Get AI-powered feedback and practice your pitch
-- **Investor Matching**: Connect with verified VCs and angel investors
+### Implemented Features ✅
+- **Role-Based Authentication**: Secure wallet-based sign-in with Dynamic
+- **5-Minute Chat System**: Timed conversations between investors and founders
+- **Base Pay Integration**: Seamless cryptocurrency payments for chat sessions
+- **Real-Time Communication**: Socket.IO powered messaging system
+- **Session Management**: Complete lifecycle (pending, scheduled, active, completed, expired)
+- **Professional UI**: Modern, responsive design with Tailwind CSS and shadcn/ui
+- **Multi-Role Support**: Founders, Investors, and Both role options
 
 ### Technology Stack
-- **Frontend**: Next.js 15, TypeScript, Tailwind CSS, Framer Motion
-- **Backend**: Next.js API Routes, Prisma ORM, SQLite
-- **Blockchain**: Base Network, USDC payments, NFT minting
-- **Storage**: Pinata IPFS for NFT metadata and certificates
-- **AI**: Z.ai Web SDK for pitch feedback and coaching
+- **Frontend**: Next.js 14, React, TypeScript, Tailwind CSS
+- **Authentication**: Dynamic (wallet-based auth)
+- **Payments**: Base Pay integration
+- **Real-time**: Socket.IO
+- **Database**: MongoDB with Mongoose
+- **Storage**: Pinata IPFS
+- **UI Components**: shadcn/ui
+- **Deployment**: Vercel
 
 ## 📁 Project Structure
 
 ```
 src/
 ├── app/                    # Next.js App Router pages
-│   ├── api/               # API routes
-│   │   ├── auth/          # User authentication
-│   │   ├── pitches/       # Pitch management
-│   │   ├── ipfs/          # IPFS storage
-│   │   ├── nft/           # NFT minting
-│   │   ├── payment/       # Base Pay integration
-│   │   └── ai/            # AI services
-│   ├── create/            # Create pitch page
-│   ├── practice/          # Pitch practice interface
-│   ├── pitch/             # Live pitch session
-│   ├── investors/         # Investor dashboard
+│   ├── chat/              # Chat system page
 │   └── page.tsx           # Landing page
 ├── components/
+│   ├── auth/              # Authentication components
+│   │   ├── AuthWrapper.tsx
+│   │   └── RoleSelection.tsx
+│   ├── chat/              # Chat system components
+│   │   ├── ChatSystem.tsx
+│   │   └── ChatManager.tsx
+│   ├── dashboard/         # Role-based dashboards
+│   │   ├── FounderDashboard.tsx
+│   │   └── InvestorDashboard.tsx
+│   ├── payments/          # Base Pay integration
+│   │   └── BasePayComponents.tsx
 │   └── ui/                # shadcn/ui components
-└── lib/
-    └── db.ts              # Database client
+├── hooks/                 # Custom React hooks
+├── lib/                   # Utility libraries
+│   ├── db.ts              # Database client
+│   ├── socket.ts          # Socket.IO client
+│   └── utils.ts           # Utility functions
+└── types/                 # TypeScript type definitions
 ```
 
 ## 🛠️ Getting Started
@@ -46,10 +56,18 @@ src/
 ### Prerequisites
 - Node.js 18+
 - npm or yarn
+- MongoDB database
+- Dynamic account for authentication
+- Base network setup for payments
 
 ### Installation
 
-1. Clone the repository
+1. Clone the repository:
+   ```bash
+   git clone <repository-url>
+   cd micropitch
+   ```
+
 2. Install dependencies:
    ```bash
    npm install
@@ -57,154 +75,62 @@ src/
 
 3. Set up environment variables:
    ```bash
-   cp .env.local.example .env.local
+   cp .env.example .env.local
    ```
    
-4. Initialize the database:
-   ```bash
-   npm run db:push
-   ```
+   Fill in your environment variables:
+   - `DYNAMIC_ENVIRONMENT_ID`: Your Dynamic environment ID
+   - `MONGODB_URI`: MongoDB connection string
+   - `PINATA_JWT`: Pinata JWT token
+   - `BASE_PAY_*`: Base Pay configuration
 
-5. Start the development server:
+4. Start the development server:
    ```bash
    npm run dev
    ```
 
-6. Open [http://localhost:3000](http://localhost:3000)
+5. Open [http://localhost:3000](http://localhost:3000) in your browser
 
-## 🎯 Key Pages
+## 💡 Usage
 
-### Landing Page (`/`)
-- Stunning black background with yellow accent design
-- Glassmorphism effects and water-like animations
-- Key statistics and feature highlights
-- Navigation to main platform features
+### For Founders
+1. Sign in with your wallet
+2. Select "Founder" role
+3. Access your dashboard to manage pitch sessions
+4. Navigate to Chat Sessions to view and manage conversations
 
-### Create Pitch (`/create`)
-- Multi-step pitch creation wizard
-- Business details, financial information, and review
-- Real-time validation and helpful tips
-- Submit to investor marketplace
+### For Investors  
+1. Sign in with your wallet
+2. Select "Investor" role
+3. Browse available founders
+4. Initiate paid chat sessions
+5. Manage your investment conversations
 
-### Practice Pitch (`/practice`)
-- AI-powered pitch coaching
-- Recording and transcription
-- Real-time feedback and suggestions
-- Multiple practice modes (free, guided, Q&A)
+## 🔧 Key Components
 
-### Live Pitch Session (`/pitch`)
-- Real-time video/audio interface
-- Per-second billing counter
-- Session recording and transcript
-- AI assistant for live coaching
+### Authentication System
+- `AuthWrapper.tsx`: Main authentication wrapper with Dynamic integration
+- `RoleSelection.tsx`: Role selection interface for multi-role support
+- Wallet-based secure authentication
 
-### Investor Dashboard (`/investors`)
-- Browse and filter investment opportunities
-- Detailed pitch profiles and metrics
-- Book pitch sessions directly
-- Track portfolio and performance
+### Chat System
+- `ChatSystem.tsx`: Core chat functionality with 5-minute timer
+- `ChatManager.tsx`: Multi-session management interface
+- Real-time messaging with Socket.IO
+- Base Pay integration for session payments
 
-## 💰 Payment System
+### Dashboard System
+- `FounderDashboard.tsx`: Founder-specific interface and navigation
+- `InvestorDashboard.tsx`: Investor-specific interface and tools
+- Role-based feature access and session statistics
 
-### Base Pay Integration
-- USDC payments on Base network
-- Per-second billing model
-- Automatic payment processing
-- Transaction history and receipts
+## 🌐 Live Application
 
-### Pricing
-- Default rate: $0.01 USD per second
-- Custom rates for premium investors
-- Session caps at 5 minutes (300 seconds)
-- Maximum cost per session: $3.00
+The application is deployed and accessible at:
+**[https://micropitch-cxqwn96p2-lliseli-projects.vercel.app](https://micropitch-cxqwn96p2-lliseli-projects.vercel.app)**
 
-## 🎨 NFT Certificates
-
-### Certificate Features
-- Unique NFT for each completed session
-- Stored on IPFS via Pinata
-- Includes session metadata and achievements
-- Verifiable on blockchain explorers
-
-### Metadata Structure
-```json
-{
-  "name": "Pitch Certificate: [Startup Name]",
-  "description": "Certificate of completion for pitch session",
-  "attributes": [
-    {
-      "trait_type": "Duration",
-      "value": 180
-    },
-    {
-      "trait_type": "Total Cost", 
-      "value": "1.80 USDC"
-    }
-  ]
-}
-```
-
-## 🤖 AI Integration
-
-### AI Services
-- **Pitch Feedback**: Detailed analysis of pitch content
-- **Question Generator**: Practice tough investor questions
-- **Pitch Improver**: Enhance pitch language and structure
-- **Practice Partner**: Simulate real investor conversations
-
-### AI Prompts
-The system uses carefully crafted prompts to provide:
-- Constructive feedback on delivery and content
-- Industry-specific insights and recommendations
-- Realistic investor questions and scenarios
-- Actionable improvement suggestions
-
-## 🔧 Configuration
-
-### Environment Variables
-```env
-# Coinbase CDP Configuration
-NEXT_PUBLIC_CDP_PROJECT_ID=your-project-id
-
-# Pinata IPFS Configuration  
-PINATA_API_KEY=your-pinata-api-key
-PINATA_API_SECRET=your-pinata-secret
-PINATA_JWT=your-pinata-jwt
-
-# Database
-DATABASE_URL="file:./dev.db"
-```
-
-### Database Schema
-- **Users**: Founder and investor profiles
-- **Pitches**: Startup information and details
-- **Sessions**: Pitch session records and billing
-- **NFTs**: Certificate metadata and ownership
-- **Investments**: Funding transactions and terms
-
-## 🚀 Deployment
-
-### Production Setup
-1. Configure production environment variables
-2. Set up production database
-3. Configure Base Pay for production
-4. Deploy to Vercel or similar platform
-
-### Security Considerations
-- Secure API key management
-- Rate limiting on API endpoints
-- Input validation and sanitization
-- HTTPS enforcement
-- Smart contract security audits
-
-## 📊 Analytics & Metrics
-
-### Key Performance Indicators
-- Session completion rate
-- Average session duration
-- Funding conversion rate
-- User engagement metrics
-- NFT minting statistics
+### Deploy Your Own
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=<repository-url>)
 
 ## 🤝 Contributing
 
