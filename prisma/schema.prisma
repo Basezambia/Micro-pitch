@@ -1,0 +1,197 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String    @id @default(cuid())
+  email           String    @unique
+  name            String?
+  walletAddress   String?   @unique
+  role            UserRole  @default(FOUNDER)
+  bio             String?
+  profileImage    String?
+  isVerified      Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  // Relations
+  pitches         Pitch[]
+  investments     Investment[]
+  sessions        PitchSession[]
+  nfts            NFT[]
+  payments        Payment[]
+  
+  @@map("users")
+}
+
+model Pitch {
+  id              String      @id @default(cuid())
+  title           String
+  description     String
+  category        String
+  tags            String?     // JSON array of tags
+  deckUrl         String?     // Presentation deck URL
+  oneLiner        String?     // Quick pitch line
+  targetAmount    Float?      // Target investment amount
+  equityOffered   Float?      // Equity percentage offered
+  valuation       Float?      // Company valuation
+  traction        String?     // Traction metrics
+  teamSize        Int?
+  stage           String?     // Pre-seed, Seed, Series A, etc.
+  isPublic        Boolean     @default(true)
+  status          PitchStatus @default(DRAFT)
+  founderId       String
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  
+  // Relations
+  founder         User        @relation(fields: [founderId], references: [id], onDelete: Cascade)
+  sessions        PitchSession[]
+  investments     Investment[]
+  nfts            NFT[]
+  payments        Payment[]
+  
+  @@map("pitches")
+}
+
+model PitchSession {
+  id              String        @id @default(cuid())
+  pitchId         String
+  investorId      String
+  startTime       DateTime      @default(now())
+  endTime         DateTime?
+  duration        Int?          // Duration in seconds
+  ratePerSecond   Float         // USDC per second
+  totalCost       Float?        // Total cost in USDC
+  status          SessionStatus @default(SCHEDULED)
+  recordingUrl    String?       // IPFS URL of recording
+  transcript      String?       // Session transcript
+  aiFeedback      String?       // AI-generated feedback
+  investorNotes   String?       // Private investor notes
+  meetingLink     String?       // Video call link
+  paymentTxId     String?       // Transaction ID for payment
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  // Relations
+  pitch           Pitch         @relation(fields: [pitchId], references: [id], onDelete: Cascade)
+  investor        User          @relation(fields: [investorId], references: [id], onDelete: Cascade)
+  payments        Payment[]
+  
+  @@map("pitch_sessions")
+}
+
+model Investment {
+  id              String          @id @default(cuid())
+  pitchId         String
+  investorId      String
+  amount          Float           // Investment amount in USDC
+  equity          Float?          // Equity percentage
+  terms           String?         // Investment terms
+  status          InvestmentStatus @default(PENDING)
+  transactionId   String?         // Blockchain transaction ID
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  
+  // Relations
+  pitch           Pitch           @relation(fields: [pitchId], references: [id], onDelete: Cascade)
+  investor        User            @relation(fields: [investorId], references: [id], onDelete: Cascade)
+  
+  @@map("investments")
+}
+
+model NFT {
+  id              String      @id @default(cuid())
+  name            String
+  description     String
+  imageUrl        String      // IPFS URL
+  animationUrl    String?     // IPFS URL for video/audio
+  tokenId         String?     // Blockchain token ID
+  contractAddress String?     // NFT contract address
+  ownerId         String
+  pitchId         String?     // Associated pitch (if any)
+  sessionId       String?     // Associated session (if any)
+  metadata        String?     // IPFS metadata URL
+  mintedAt        DateTime?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  
+  // Relations
+  owner           User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  pitch           Pitch?      @relation(fields: [pitchId], references: [id], onDelete: Cascade)
+  
+  @@map("nfts")
+}
+
+model Payment {
+  id              String        @id @default(cuid())
+  userId          String
+  amount          String        // Amount in USDC (as string to match Base Pay)
+  purpose         PaymentPurpose
+  status          PaymentStatus @default(PENDING)
+  transactionId   String?       // Base Pay transaction ID
+  pitchId         String?       // Associated pitch (for pitch creation/practice)
+  sessionId       String?       // Associated session (for investor chat)
+  recipientAddress String       // Platform wallet address
+  payerInfo       String?       // JSON string of collected payer info
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  // Relations
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pitch           Pitch?        @relation(fields: [pitchId], references: [id], onDelete: Cascade)
+  session         PitchSession? @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  
+  @@map("payments")
+}
+
+enum UserRole {
+  FOUNDER
+  INVESTOR
+  BOTH
+}
+
+enum PitchStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  CLOSED
+}
+
+enum SessionStatus {
+  SCHEDULED
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum InvestmentStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  COMPLETED
+}
+
+enum PaymentPurpose {
+  PITCH_CREATION
+  PITCH_PRACTICE
+  INVESTOR_CHAT
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
