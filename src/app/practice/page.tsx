@@ -46,7 +46,7 @@ export default function PracticePitch() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [currentTranscript, setCurrentTranscript] = useState("");
   const [feedback, setFeedback] = useState<FeedbackItem[]>([]);
-  const [practiceMode, setPracticeMode] = useState<'free' | 'guided' | 'qa'>('free');
+  const [practiceMode, setPracticeMode] = useState<'free' | 'guided' | 'qa'>('guided');
   const [duration, setDuration] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
   

@@ -33,30 +33,12 @@ export default function Home() {
         {/* Brutalist Navigation */}
         <nav className="p-8 border-b-4 border-gray-800">
           <div className="max-w-6xl mx-auto flex justify-between items-center">
-            <div className="text-3xl font-black tracking-wider">
+            <Link href="/" className="text-3xl font-black tracking-wider hover:text-yellow-400 transition-colors cursor-pointer">
               MICRO<span className="text-yellow-400">PITCH</span>
-            </div>
+            </Link>
             <div className="flex items-center space-x-8">
               {isSignedIn && (
                 <>
-                  <Link href="/practice">
-                    <Button 
-                      variant="ghost" 
-                      className="text-white hover:text-yellow-400 font-black text-lg border-2 border-transparent hover:border-yellow-400 px-6 py-3"
-                    >
-                      <Mic className="w-5 h-5 mr-2" />
-                      PRACTICE
-                    </Button>
-                  </Link>
-                  <Link href="/create">
-                    <Button 
-                      variant="ghost" 
-                      className="text-white hover:text-blue-400 font-black text-lg border-2 border-transparent hover:border-blue-400 px-6 py-3"
-                    >
-                      <Brain className="w-5 h-5 mr-2" />
-                      CREATE PITCH
-                    </Button>
-                  </Link>
                   <Link href="/investors">
                     <Button 
                       variant="ghost" 
@@ -75,33 +57,98 @@ export default function Home() {
           </div>
         </nav>
 
-        {/* Brutalist Hero Section */}
-        <div className="flex-1 flex items-center justify-center p-8">
-          <div className="max-w-6xl mx-auto">
-            <motion.div
-              initial={{ opacity: 0, y: 50 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8 }}
-              className="text-center mb-16"
-            >
-
-              
-              <div className="border-l-8 border-yellow-400 pl-8 mb-12 text-left max-w-4xl mx-auto">
-                <h1 className="text-7xl md:text-9xl font-black tracking-tight mb-6 leading-none">
-                  PERFECT
+        {/* Conditional Content Based on Sign-in Status */}
+        {isSignedIn ? (
+          /* Signed-in User: Simple Action Buttons */
+          <div className="flex-1 flex items-center justify-center p-8">
+            <div className="max-w-4xl mx-auto">
+              <motion.div
+                initial={{ opacity: 0, y: 50 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8 }}
+                className="text-center"
+              >
+                <h1 className="text-5xl md:text-7xl font-black tracking-tight mb-8 leading-none">
+                  READY TO
                   <br />
-                  YOUR
-                  <br />
-                  <span className="text-yellow-400">PITCH</span>
+                  <span className="text-yellow-400">PITCH?</span>
                 </h1>
                 
-                <p className="text-2xl md:text-3xl text-gray-300 font-medium max-w-3xl">
-                  MASTER STARTUP PITCHING WITH BRUTAL PRECISION.
-                  <br />
-                  AI COACHING. REAL FEEDBACK. INVESTOR READY.
+                <p className="text-xl md:text-2xl text-gray-300 font-medium mb-12 max-w-2xl mx-auto">
+                  Choose your path to pitch perfection
                 </p>
-              </div>
-            </motion.div>
+
+                {/* Action Buttons */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-3xl mx-auto">
+                  <Link href="/practice">
+                    <motion.div
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      className="bg-gradient-to-br from-yellow-600 to-yellow-800 p-8 border-4 border-yellow-500 shadow-2xl transform transition-all duration-300 hover:shadow-yellow-400/20 cursor-pointer"
+                    >
+                      <div className="flex flex-col items-center text-center space-y-4">
+                        <div className="w-20 h-20 rounded-full bg-black/20 flex items-center justify-center border-2 border-white">
+                          <Mic className="w-10 h-10 text-white" />
+                        </div>
+                        <h3 className="text-2xl font-black text-white">
+                          PRACTICE PITCH
+                        </h3>
+                        <p className="text-gray-200 font-medium">
+                          Perfect your pitch with AI coaching and real-time feedback
+                        </p>
+                      </div>
+                    </motion.div>
+                  </Link>
+
+                  <Link href="/create">
+                    <motion.div
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      className="bg-gradient-to-br from-blue-600 to-blue-800 p-8 border-4 border-blue-500 shadow-2xl transform transition-all duration-300 hover:shadow-blue-400/20 cursor-pointer"
+                    >
+                      <div className="flex flex-col items-center text-center space-y-4">
+                        <div className="w-20 h-20 rounded-full bg-black/20 flex items-center justify-center border-2 border-white">
+                          <Brain className="w-10 h-10 text-white" />
+                        </div>
+                        <h3 className="text-2xl font-black text-white">
+                          CREATE PITCH
+                        </h3>
+                        <p className="text-gray-200 font-medium">
+                          Build and structure your startup pitch from scratch
+                        </p>
+                      </div>
+                    </motion.div>
+                  </Link>
+                </div>
+              </motion.div>
+            </div>
+          </div>
+        ) : (
+          /* Non-signed-in User: Full Landing Page */
+          <div className="flex-1 flex items-center justify-center p-8">
+            <div className="max-w-6xl mx-auto">
+              <motion.div
+                initial={{ opacity: 0, y: 50 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8 }}
+                className="text-center mb-16"
+              >
+                <div className="border-l-8 border-yellow-400 pl-8 mb-12 text-left max-w-4xl mx-auto">
+                  <h1 className="text-7xl md:text-9xl font-black tracking-tight mb-6 leading-none">
+                    PERFECT
+                    <br />
+                    YOUR
+                    <br />
+                    <span className="text-yellow-400">PITCH</span>
+                  </h1>
+                  
+                  <p className="text-2xl md:text-3xl text-gray-300 font-medium max-w-3xl">
+                    MASTER STARTUP PITCHING WITH BRUTAL PRECISION.
+                    <br />
+                    AI COACHING. REAL FEEDBACK. INVESTOR READY.
+                  </p>
+                </div>
+              </motion.div>
 
             {/* Feature Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
@@ -196,6 +243,7 @@ export default function Home() {
             </motion.div>
           </div>
         </div>
+        )}
       </div>
     </div>
   );

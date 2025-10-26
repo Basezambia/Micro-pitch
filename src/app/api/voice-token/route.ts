@@ -2,6 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {
+    // Check if OpenAI API key is configured
+    if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === 'sk-proj-your-actual-openai-api-key-here') {
+      console.error('OpenAI API key not configured');
+      return NextResponse.json(
+        { error: 'OpenAI API key not configured. Please set OPENAI_API_KEY in your environment variables.' },
+        { status: 500 }
+      );
+    }
+
     const { model = 'gpt-4o-realtime-preview-2024-10-01' } = await request.json();
 
     const response = await fetch('https://api.openai.com/v1/realtime/sessions', {

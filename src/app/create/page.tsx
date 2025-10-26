@@ -158,21 +158,28 @@ export default function CreatePitch() {
             
             return (
               <div key={step.id} className="flex items-center">
-                <motion.div
-                  className={`flex items-center justify-center w-12 h-12 rounded-full border-2 transition-all ${
-                    isActive 
-                      ? 'border-yellow-400 bg-yellow-400/20' 
-                      : isCompleted 
-                        ? 'border-green-400 bg-green-400/20' 
-                        : 'border-gray-600 bg-gray-800'
-                  }`}
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                >
-                  <Icon className={`w-6 h-6 ${
+                <div className="flex flex-col items-center">
+                  <motion.div
+                    className={`flex items-center justify-center w-12 h-12 rounded-full border-2 transition-all ${
+                      isActive 
+                        ? 'border-yellow-400 bg-yellow-400/20' 
+                        : isCompleted 
+                          ? 'border-green-400 bg-green-400/20' 
+                          : 'border-gray-600 bg-gray-800'
+                    }`}
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                  >
+                    <Icon className={`w-6 h-6 ${
+                      isActive ? 'text-yellow-400' : isCompleted ? 'text-green-400' : 'text-gray-400'
+                    }`} />
+                  </motion.div>
+                  <span className={`text-xs mt-2 font-medium ${
                     isActive ? 'text-yellow-400' : isCompleted ? 'text-green-400' : 'text-gray-400'
-                  }`} />
-                </motion.div>
+                  }`}>
+                    {step.title}
+                  </span>
+                </div>
                 
                 {index < steps.length - 1 && (
                   <div className={`w-full h-0.5 mx-4 ${

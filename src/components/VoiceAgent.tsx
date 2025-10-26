@@ -24,8 +24,6 @@ export default function VoiceAgent({ className, promptId, onTranscript, onAIResp
   const sessionRef = useRef<RealtimeSession | null>(null);
 
   const connectToAgent = async () => {
-    if (isConnected || isConnecting) return;
-    
     setIsConnecting(true);
     setError(null);
     
@@ -42,7 +40,11 @@ export default function VoiceAgent({ className, promptId, onTranscript, onAIResp
       });
       
       if (!response.ok) {
-        throw new Error('Failed to get voice token');
+        const errorData = await response.json();
+        if (errorData.error?.includes('OpenAI API key not configured')) {
+          throw new Error('Voice coaching is currently unavailable. Please configure your OpenAI API key to enable this feature.');
+        }
+        throw new Error(errorData.error || 'Failed to get voice token');
       }
       
       const { client_secret } = await response.json();
