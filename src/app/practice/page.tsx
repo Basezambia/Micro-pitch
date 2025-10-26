@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import VoiceAgent from "@/components/VoiceAgent";
 import { useIsSignedIn } from "@coinbase/cdp-hooks";
+import { PitchPracticePayment } from "@/components/payments/BasePayComponents";
 import { 
   Mic, 
   MicOff, 
@@ -49,6 +50,8 @@ export default function PracticePitch() {
   const [practiceMode, setPracticeMode] = useState<'free' | 'guided' | 'qa'>('guided');
   const [duration, setDuration] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isPaid, setIsPaid] = useState(false);
+  const [paymentId, setPaymentId] = useState<string | null>(null);
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -342,20 +345,43 @@ export default function PracticePitch() {
               </div>
 
               <div className="text-center">
-                <Button
-                  size="lg"
-                  className="bg-yellow-400 hover:bg-yellow-500 text-black font-black text-xl px-12 py-6 border-4 border-black shadow-lg transform hover:scale-105 transition-all"
-                  onClick={() => {
-                    if (practiceMode === 'guided') {
-                      setUIState('ai-coach');
-                    } else {
-                      startRecording();
-                    }
-                  }}
-                >
-                  START PRACTICE
-                  <ArrowRight className="w-6 h-6 ml-2" />
-                </Button>
+                {!isPaid ? (
+                  <div className="mb-8">
+                    <h3 className="text-2xl font-black mb-4 text-yellow-400">COMPLETE PAYMENT TO START PRACTICE</h3>
+                    <PitchPracticePayment
+                      onPaymentSuccess={(paymentId) => {
+                        setIsPaid(true);
+                        setPaymentId(paymentId);
+                        console.log('Payment successful:', paymentId);
+                      }}
+                      onPaymentError={(error) => {
+                        console.error('Payment failed:', error);
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <>
+                    <div className="mb-4 p-4 bg-green-400/10 border border-green-400/30 rounded-lg">
+                      <p className="text-sm text-green-300">
+                        ✅ Payment completed! You can now start your practice session.
+                      </p>
+                    </div>
+                    <Button
+                      size="lg"
+                      className="bg-yellow-400 hover:bg-yellow-500 text-black font-black text-xl px-12 py-6 border-4 border-black shadow-lg transform hover:scale-105 transition-all"
+                      onClick={() => {
+                        if (practiceMode === 'guided') {
+                          setUIState('ai-coach');
+                        } else {
+                          startRecording();
+                        }
+                      }}
+                    >
+                      START PRACTICE
+                      <ArrowRight className="w-6 h-6 ml-2" />
+                    </Button>
+                  </>
+                )}
               </div>
             </motion.div>
           )}

@@ -15,6 +15,7 @@ interface BasePayButtonProps {
   disabled?: boolean;
   className?: string;
   collectPayerInfo?: boolean;
+  recipientAddress?: string; // Optional custom recipient address
 }
 
 export const BasePayButton: React.FC<BasePayButtonProps> = ({
@@ -24,17 +25,19 @@ export const BasePayButton: React.FC<BasePayButtonProps> = ({
   onPaymentError,
   disabled = false,
   className = '',
-  collectPayerInfo = false
+  collectPayerInfo = false,
+  recipientAddress
 }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState<'idle' | 'processing' | 'success' | 'error'>('idle');
   const { toast } = useToast();
 
   const platformWalletAddress = process.env.NEXT_PUBLIC_PLATFORM_WALLET_ADDRESS;
+  const targetAddress = recipientAddress || platformWalletAddress;
 
   const handlePayment = async () => {
-    if (!platformWalletAddress) {
-      const error = 'Platform wallet address not configured';
+    if (!targetAddress) {
+      const error = recipientAddress ? 'Recipient wallet address not provided' : 'Platform wallet address not configured';
       toast({
         title: 'Configuration Error',
         description: error,
@@ -50,7 +53,7 @@ export const BasePayButton: React.FC<BasePayButtonProps> = ({
     try {
       const paymentConfig: any = {
         amount,
-        to: platformWalletAddress,
+        to: targetAddress,
         testnet: false // Using mainnet as requested
       };
 
@@ -170,6 +173,7 @@ interface PaymentCardProps {
   onPaymentError?: (error: string) => void;
   disabled?: boolean;
   collectPayerInfo?: boolean;
+  recipientAddress?: string; // Optional custom recipient address
 }
 
 export const PaymentCard: React.FC<PaymentCardProps> = ({
@@ -180,7 +184,8 @@ export const PaymentCard: React.FC<PaymentCardProps> = ({
   onPaymentSuccess,
   onPaymentError,
   disabled = false,
-  collectPayerInfo = false
+  collectPayerInfo = false,
+  recipientAddress
 }) => {
   return (
     <Card className="w-full max-w-md">
@@ -204,6 +209,7 @@ export const PaymentCard: React.FC<PaymentCardProps> = ({
             onPaymentError={onPaymentError}
             disabled={disabled}
             collectPayerInfo={collectPayerInfo}
+            recipientAddress={recipientAddress}
             className="w-full"
           />
         </div>
@@ -250,7 +256,8 @@ export const InvestorChatPayment: React.FC<{
   onPaymentError?: (error: string) => void;
   disabled?: boolean;
   founderName?: string;
-}> = ({ onPaymentSuccess, onPaymentError, disabled, founderName }) => (
+  creatorWalletAddress?: string; // Creator's wallet address for payment
+}> = ({ onPaymentSuccess, onPaymentError, disabled, founderName, creatorWalletAddress }) => (
   <PaymentCard
     title="Connect with Founder"
     description={`Start a 5-minute chat session with ${founderName || 'the founder'} to discuss their pitch.`}
@@ -260,5 +267,6 @@ export const InvestorChatPayment: React.FC<{
     onPaymentError={onPaymentError}
     disabled={disabled}
     collectPayerInfo={true}
+    recipientAddress={creatorWalletAddress}
   />
 );

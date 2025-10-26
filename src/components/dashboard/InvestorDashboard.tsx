@@ -4,6 +4,7 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { InvestorChatPayment } from '@/components/payments/BasePayComponents';
 import { 
   Search, 
   TrendingUp, 
@@ -90,14 +91,16 @@ export function InvestorDashboard() {
       founderName: 'Sarah Chen',
       pitchTitle: 'AI-Powered Healthcare Platform',
       scheduledAt: '2024-01-20T14:00:00Z',
-      status: 'scheduled'
+      status: 'scheduled',
+      founderWalletAddress: '0x1234567890123456789012345678901234567890' // Mock wallet address
     },
     {
       id: '2',
       founderName: 'David Kim',
       pitchTitle: 'Sustainable Energy Storage',
       scheduledAt: '2024-01-21T10:30:00Z',
-      status: 'pending_payment'
+      status: 'pending_payment',
+      founderWalletAddress: '0x0987654321098765432109876543210987654321' // Mock wallet address
     }
   ];
 
@@ -285,12 +288,30 @@ export function InvestorDashboard() {
                     })}
                   </div>
                 </div>
-                <Badge 
-                  variant={chat.status === 'scheduled' ? 'default' : 'secondary'}
-                  className={chat.status === 'scheduled' ? 'bg-blue-600' : 'bg-yellow-600'}
-                >
-                  {chat.status === 'scheduled' ? 'Ready' : 'Pending Payment'}
-                </Badge>
+                <div className="flex items-center gap-2">
+                  {chat.status === 'scheduled' ? (
+                    <Badge variant="default" className="bg-blue-600">
+                      Ready
+                    </Badge>
+                  ) : (
+                    <div className="flex flex-col items-end gap-2">
+                      <Badge variant="secondary" className="bg-yellow-600">
+                        Pending Payment
+                      </Badge>
+                      <InvestorChatPayment
+                        onPaymentSuccess={(paymentId) => {
+                          console.log('Chat payment successful:', paymentId);
+                          // Update chat status to scheduled
+                        }}
+                        onPaymentError={(error) => {
+                          console.error('Chat payment failed:', error);
+                        }}
+                        founderName={chat.founderName}
+                        creatorWalletAddress={chat.founderWalletAddress}
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
             ))}
           </div>

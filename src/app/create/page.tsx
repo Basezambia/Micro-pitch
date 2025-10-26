@@ -15,9 +15,14 @@ import {
   Plus,
   X,
   ChevronRight,
-  CheckCircle
+  CheckCircle,
+  Brain,
+  Sparkles,
+  AlertCircle
 } from "lucide-react";
 import FileUpload from "@/components/FileUpload";
+import { PitchCreationPayment } from "@/components/payments/BasePayComponents";
+import { useEvmAddress } from "@coinbase/cdp-hooks";
 
 interface PitchFormData {
   title: string;
@@ -44,10 +49,20 @@ const stages = [
 ];
 
 export default function CreatePitch() {
+  const { evmAddress } = useEvmAddress(); // Get creator's wallet address
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [isPaid, setIsPaid] = useState(false);
+  const [paymentId, setPaymentId] = useState<string | null>(null);
   const [tagInput, setTagInput] = useState("");
+  const [analysisResult, setAnalysisResult] = useState<{
+    score: number;
+    analysis: string;
+    improvedPitch?: string;
+    suggestions?: string[];
+  } | null>(null);
   
   const [formData, setFormData] = useState<PitchFormData>({
     title: "",
@@ -79,18 +94,61 @@ export default function CreatePitch() {
     updateFormData('tags', formData.tags.filter(tag => tag !== tagToRemove));
   };
 
-  const submitPitch = async () => {
+  const analyzePitch = async () => {
+    setIsAnalyzing(true);
+    
+    try {
+      const response = await fetch('/api/analyze-pitch', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData)
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        setAnalysisResult(result);
+        setCurrentStep(5); // Move to analysis step
+      } else {
+        throw new Error('Failed to analyze pitch');
+      }
+    } catch (error) {
+      console.error('Error analyzing pitch:', error);
+      alert('Failed to analyze pitch. Please try again.');
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const submitPitch = async (finalPitchData?: any) => {
+    if (!isPaid) {
+      alert('Please complete payment before creating your pitch.');
+      return;
+    }
+
+    if (!evmAddress) {
+      alert('Please connect your wallet to create a pitch.');
+      return;
+    }
+    
     setIsSubmitting(true);
     
     try {
+      const pitchToSubmit = finalPitchData || formData;
+      
       const response = await fetch('/api/pitches', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          ...formData,
-          founderId: "demo-founder-id" // Temporary demo ID
+          ...pitchToSubmit,
+          founderId: evmAddress, // Use creator's wallet address as founderId
+          creatorWalletAddress: evmAddress, // Store creator's wallet address
+          analysisScore: analysisResult?.score,
+          analysisData: analysisResult,
+          paymentId: paymentId // Include payment ID for verification
         })
       });
 
@@ -111,7 +169,8 @@ export default function CreatePitch() {
     { id: 1, title: "Basic Info", icon: Lightbulb },
     { id: 2, title: "Business Details", icon: Target },
     { id: 3, title: "Financials", icon: DollarSign },
-    { id: 4, title: "Review", icon: CheckCircle }
+    { id: 4, title: "Review", icon: CheckCircle },
+    { id: 5, title: "AI Analysis", icon: Brain }
   ];
 
   if (isSuccess) {
@@ -452,9 +511,158 @@ export default function CreatePitch() {
 
                 <div className="p-4 bg-green-400/10 border border-green-400/30 rounded-lg">
                   <p className="text-sm text-green-300">
-                    ✅ Your pitch is ready to go! Once submitted, it will be visible to investors who can start booking pitch sessions with you.
+                    ✅ Your pitch is ready for AI analysis! Our AI will review, score, and potentially improve your pitch to meet VC standards.
                   </p>
                 </div>
+
+                {/* Payment Section */}
+                <div className="border-t border-gray-700 pt-6">
+                  <h3 className="text-lg font-semibold mb-4 text-yellow-400">Complete Payment to Create Pitch</h3>
+                  {!isPaid ? (
+                    <PitchCreationPayment
+                      onPaymentSuccess={(paymentId) => {
+                        setIsPaid(true);
+                        setPaymentId(paymentId);
+                        console.log('Payment successful:', paymentId);
+                      }}
+                      onPaymentError={(error) => {
+                        console.error('Payment failed:', error);
+                      }}
+                    />
+                  ) : (
+                    <div className="p-4 bg-green-400/10 border border-green-400/30 rounded-lg">
+                      <p className="text-sm text-green-300">
+                        ✅ Payment completed! You can now proceed with pitch creation.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {currentStep === 5 && (
+            <Card className="bg-gray-900/50 border-gray-800 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Brain className="w-6 h-6 mr-2 text-purple-400" />
+                  AI Pitch Analysis
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {isAnalyzing ? (
+                  <div className="text-center py-12">
+                    <div className="animate-spin w-12 h-12 border-4 border-purple-400 border-t-transparent rounded-full mx-auto mb-4"></div>
+                    <p className="text-lg font-medium mb-2">Analyzing Your Pitch...</p>
+                    <p className="text-sm text-gray-400">Our AI is reviewing your pitch for completeness, clarity, and VC readiness</p>
+                  </div>
+                ) : analysisResult ? (
+                  <div className="space-y-6">
+                    {/* Score Display */}
+                    <div className="text-center p-6 bg-gradient-to-r from-purple-900/30 to-blue-900/30 rounded-lg border border-purple-400/30">
+                      <div className="text-4xl font-bold mb-2">
+                        <span className={analysisResult.score >= 80 ? 'text-green-400' : analysisResult.score >= 70 ? 'text-yellow-400' : 'text-red-400'}>
+                          {analysisResult.score}
+                        </span>
+                        <span className="text-gray-400">/100</span>
+                      </div>
+                      <p className="text-sm text-gray-300">
+                        {analysisResult.score >= 80 ? 'Excellent! VC-ready pitch' : 
+                         analysisResult.score >= 70 ? 'Good pitch with room for improvement' : 
+                         'Needs significant improvement'}
+                      </p>
+                    </div>
+
+                    {/* Analysis */}
+                    <div>
+                      <h3 className="text-lg font-semibold mb-3 text-purple-400 flex items-center">
+                        <Sparkles className="w-5 h-5 mr-2" />
+                        Detailed Analysis
+                      </h3>
+                      <div className="bg-gray-800/50 p-4 rounded-lg">
+                        <pre className="text-sm text-gray-300 whitespace-pre-wrap font-sans">
+                          {analysisResult.analysis}
+                        </pre>
+                      </div>
+                    </div>
+
+                    {/* Improved Pitch or Suggestions */}
+                    {analysisResult.improvedPitch ? (
+                      <div>
+                        <h3 className="text-lg font-semibold mb-3 text-green-400 flex items-center">
+                          <CheckCircle className="w-5 h-5 mr-2" />
+                          AI-Improved Pitch
+                        </h3>
+                        <div className="bg-green-900/20 border border-green-400/30 p-4 rounded-lg">
+                          <pre className="text-sm text-gray-300 whitespace-pre-wrap font-sans">
+                            {analysisResult.improvedPitch}
+                          </pre>
+                        </div>
+                        <div className="flex gap-3 mt-4">
+                          <Button
+                            className="bg-green-500 hover:bg-green-600"
+                            onClick={() => submitPitch({ 
+                              ...formData, 
+                              description: analysisResult.improvedPitch,
+                              aiImproved: true 
+                            })}
+                            disabled={isSubmitting}
+                          >
+                            {isSubmitting ? 'Creating...' : 'Use AI-Improved Pitch'}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            className="border-gray-600 text-white hover:bg-gray-800"
+                            onClick={() => submitPitch()}
+                            disabled={isSubmitting}
+                          >
+                            Keep Original Pitch
+                          </Button>
+                        </div>
+                      </div>
+                    ) : analysisResult.suggestions ? (
+                      <div>
+                        <h3 className="text-lg font-semibold mb-3 text-yellow-400 flex items-center">
+                          <AlertCircle className="w-5 h-5 mr-2" />
+                          Improvement Suggestions
+                        </h3>
+                        <div className="bg-yellow-900/20 border border-yellow-400/30 p-4 rounded-lg">
+                          <ul className="space-y-2">
+                            {analysisResult.suggestions.map((suggestion, index) => (
+                              <li key={index} className="text-sm text-gray-300 flex items-start">
+                                <span className="text-yellow-400 mr-2">•</span>
+                                {suggestion}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                        <Button
+                          className="bg-yellow-400 text-black hover:bg-yellow-300 mt-4"
+                          onClick={() => submitPitch()}
+                          disabled={isSubmitting}
+                        >
+                          {isSubmitting ? 'Creating...' : 'Create Pitch Anyway'}
+                        </Button>
+                      </div>
+                    ) : null}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <Brain className="w-16 h-16 text-purple-400 mx-auto mb-4" />
+                    <p className="text-lg font-medium mb-2">Ready for AI Analysis</p>
+                    <p className="text-sm text-gray-400 mb-6">
+                      Our AI will analyze your pitch and provide detailed feedback to help you create a VC-ready presentation.
+                    </p>
+                    <Button
+                      className="bg-purple-500 hover:bg-purple-600"
+                      onClick={analyzePitch}
+                      disabled={isAnalyzing}
+                    >
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      Analyze My Pitch
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
@@ -465,7 +673,13 @@ export default function CreatePitch() {
           <Button
             variant="outline"
             className="border-gray-600 text-white hover:bg-gray-800"
-            onClick={() => setCurrentStep(Math.max(1, currentStep - 1))}
+            onClick={() => {
+              if (currentStep === 5 && !analysisResult) {
+                setCurrentStep(4);
+              } else {
+                setCurrentStep(Math.max(1, currentStep - 1));
+              }
+            }}
             disabled={currentStep === 1}
           >
             Previous
@@ -479,16 +693,16 @@ export default function CreatePitch() {
               Next
               <ChevronRight className="w-4 h-4 ml-2" />
             </Button>
-          ) : (
+          ) : currentStep === 4 ? (
             <Button
-              className="bg-green-500 hover:bg-green-600"
-              onClick={submitPitch}
-              disabled={isSubmitting}
+              className="bg-purple-500 hover:bg-purple-600"
+              onClick={analyzePitch}
+              disabled={isAnalyzing || !isPaid}
             >
-              {isSubmitting ? 'Creating...' : 'Create Pitch'}
-              <CheckCircle className="w-4 h-4 ml-2" />
+              {isAnalyzing ? 'Analyzing...' : 'Analyze with AI'}
+              <Brain className="w-4 h-4 ml-2" />
             </Button>
-          )}
+          ) : null}
         </div>
       </div>
     </div>

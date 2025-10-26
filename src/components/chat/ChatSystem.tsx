@@ -38,6 +38,7 @@ interface ChatSession {
   pitchTitle: string;
   founderId: string;
   founderName: string;
+  founderWalletAddress?: string; // Creator's wallet address for payments
   investorId: string;
   investorName: string;
   status: 'PENDING_PAYMENT' | 'SCHEDULED' | 'ACTIVE' | 'COMPLETED' | 'EXPIRED';
@@ -246,6 +247,8 @@ export const ChatSystem: React.FC<ChatSystemProps> = ({
                   variant: 'destructive',
                 });
               }}
+              founderName={session.founderName}
+              creatorWalletAddress={session.founderWalletAddress}
             />
           </div>
         </CardContent>

@@ -52,6 +52,13 @@ model Pitch {
   isPublic        Boolean     @default(true)
   status          PitchStatus @default(DRAFT)
   founderId       String
+  creatorWalletAddress String? // Creator's wallet address for payments
+  
+  // AI Analysis fields
+  analysisScore   Int?        // AI analysis score (0-100)
+  analysisData    String?     // JSON string of AI analysis results
+  aiImproved      Boolean     @default(false) // Whether pitch was improved by AI
+  
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
   

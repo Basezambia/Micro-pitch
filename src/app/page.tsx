@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import AuthComponent from "@/components/auth/AuthComponent";
 import { useIsSignedIn } from "@coinbase/cdp-hooks";
+import { useCurrentUser } from "@/components/auth/AuthWrapper";
 import Link from "next/link";
 import { 
   Zap, 
@@ -13,11 +14,16 @@ import {
   ArrowRight,
   Mic,
   Brain,
-  Users
+  Users,
+  BarChart3,
+  Search,
+  DollarSign,
+  Plus
 } from "lucide-react";
 
 export default function Home() {
   const { isSignedIn } = useIsSignedIn();
+  const { user } = useCurrentUser();
 
   return (
     <div className="min-h-screen bg-black text-white relative overflow-hidden">
@@ -39,13 +45,59 @@ export default function Home() {
             <div className="flex items-center space-x-8">
               {isSignedIn && (
                 <>
-                  <Link href="/investors">
+                  {/* Role-specific navigation options */}
+                  {(user?.role === 'FOUNDER' || user?.role === 'BOTH') && (
+                    <>
+                      <Link href="/create">
+                        <Button 
+                          variant="ghost" 
+                          className="text-white hover:text-blue-400 font-black text-lg border-2 border-transparent hover:border-blue-400 px-6 py-3"
+                        >
+                          <Plus className="w-5 h-5 mr-2" />
+                          CREATE PITCH
+                        </Button>
+                      </Link>
+                      <Link href="/practice">
+                        <Button 
+                          variant="ghost" 
+                          className="text-white hover:text-purple-400 font-black text-lg border-2 border-transparent hover:border-purple-400 px-6 py-3"
+                        >
+                          <Mic className="w-5 h-5 mr-2" />
+                          PRACTICE
+                        </Button>
+                      </Link>
+                    </>
+                  )}
+                  {(user?.role === 'INVESTOR' || user?.role === 'BOTH') && (
+                    <>
+                      <Link href="/investors">
+                        <Button 
+                          variant="ghost" 
+                          className="text-white hover:text-green-400 font-black text-lg border-2 border-transparent hover:border-green-400 px-6 py-3"
+                        >
+                          <Users className="w-5 h-5 mr-2" />
+                          FOR INVESTORS
+                        </Button>
+                      </Link>
+                      <Link href="/pitch">
+                        <Button 
+                          variant="ghost" 
+                          className="text-white hover:text-yellow-400 font-black text-lg border-2 border-transparent hover:border-yellow-400 px-6 py-3"
+                        >
+                          <Search className="w-5 h-5 mr-2" />
+                          BROWSE PITCHES
+                        </Button>
+                      </Link>
+                    </>
+                  )}
+                  {/* Dashboard link for all signed-in users */}
+                  <Link href="/dashboard">
                     <Button 
                       variant="ghost" 
-                      className="text-white hover:text-green-400 font-black text-lg border-2 border-transparent hover:border-green-400 px-6 py-3"
+                      className="text-white hover:text-orange-400 font-black text-lg border-2 border-transparent hover:border-orange-400 px-6 py-3"
                     >
-                      <Users className="w-5 h-5 mr-2" />
-                      FOR INVESTORS
+                      <BarChart3 className="w-5 h-5 mr-2" />
+                      DASHBOARD
                     </Button>
                   </Link>
                 </>
@@ -59,66 +111,101 @@ export default function Home() {
 
         {/* Conditional Content Based on Sign-in Status */}
         {isSignedIn ? (
-          /* Signed-in User: Simple Action Buttons */
+          /* Signed-in User: Role-specific welcome */
           <div className="flex-1 flex items-center justify-center p-8">
-            <div className="max-w-4xl mx-auto">
+            <div className="max-w-6xl mx-auto text-center">
               <motion.div
                 initial={{ opacity: 0, y: 50 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8 }}
-                className="text-center"
               >
                 <h1 className="text-5xl md:text-7xl font-black tracking-tight mb-8 leading-none">
-                  READY TO
-                  <br />
-                  <span className="text-yellow-400">PITCH?</span>
+                  WELCOME BACK
                 </h1>
                 
                 <p className="text-xl md:text-2xl text-gray-300 font-medium mb-12 max-w-2xl mx-auto">
-                  Choose your path to pitch perfection
+                  Ready to continue your startup journey?
                 </p>
 
-                {/* Action Buttons */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-3xl mx-auto">
-                  <Link href="/practice">
-                    <motion.div
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      className="bg-gradient-to-br from-yellow-600 to-yellow-800 p-8 border-4 border-yellow-500 shadow-2xl transform transition-all duration-300 hover:shadow-yellow-400/20 cursor-pointer"
-                    >
-                      <div className="flex flex-col items-center text-center space-y-4">
-                        <div className="w-20 h-20 rounded-full bg-black/20 flex items-center justify-center border-2 border-white">
-                          <Mic className="w-10 h-10 text-white" />
-                        </div>
-                        <h3 className="text-2xl font-black text-white">
-                          PRACTICE PITCH
-                        </h3>
-                        <p className="text-gray-200 font-medium">
-                          Perfect your pitch with AI coaching and real-time feedback
-                        </p>
-                      </div>
-                    </motion.div>
-                  </Link>
+                {/* Role-specific action buttons */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                  {/* Show investor options for investors or users with both roles */}
+                  {(user?.role === 'INVESTOR' || user?.role === 'BOTH') && (
+                    <>
+                      <Link href="/investors">
+                        <motion.div
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          className="bg-gradient-to-r from-green-600 to-green-800 p-8 border-4 border-green-400 cursor-pointer group"
+                        >
+                          <div className="flex items-center gap-4">
+                            <Search className="w-12 h-12 text-white" />
+                            <div className="text-left">
+                              <h3 className="text-3xl font-black text-white mb-2">BROWSE PITCHES</h3>
+                              <p className="text-green-100 font-medium">Discover promising startups</p>
+                            </div>
+                            <ArrowRight className="w-8 h-8 text-white group-hover:translate-x-2 transition-transform duration-300" />
+                          </div>
+                        </motion.div>
+                      </Link>
 
-                  <Link href="/create">
-                    <motion.div
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      className="bg-gradient-to-br from-blue-600 to-blue-800 p-8 border-4 border-blue-500 shadow-2xl transform transition-all duration-300 hover:shadow-blue-400/20 cursor-pointer"
-                    >
-                      <div className="flex flex-col items-center text-center space-y-4">
-                        <div className="w-20 h-20 rounded-full bg-black/20 flex items-center justify-center border-2 border-white">
-                          <Brain className="w-10 h-10 text-white" />
-                        </div>
-                        <h3 className="text-2xl font-black text-white">
-                          CREATE PITCH
-                        </h3>
-                        <p className="text-gray-200 font-medium">
-                          Build and structure your startup pitch from scratch
-                        </p>
-                      </div>
-                    </motion.div>
-                  </Link>
+                      <Link href="/dashboard">
+                        <motion.div
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          className="bg-gradient-to-r from-purple-600 to-purple-800 p-8 border-4 border-purple-400 cursor-pointer group"
+                        >
+                          <div className="flex items-center gap-4">
+                            <BarChart3 className="w-12 h-12 text-white" />
+                            <div className="text-left">
+                              <h3 className="text-3xl font-black text-white mb-2">CHECK PORTFOLIO</h3>
+                              <p className="text-purple-100 font-medium">Track your investments</p>
+                            </div>
+                            <ArrowRight className="w-8 h-8 text-white group-hover:translate-x-2 transition-transform duration-300" />
+                          </div>
+                        </motion.div>
+                      </Link>
+                    </>
+                  )}
+
+                  {/* Show founder options for founders or users with both roles */}
+                  {(user?.role === 'FOUNDER' || user?.role === 'BOTH') && (
+                    <>
+                      <Link href="/create">
+                        <motion.div
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          className="bg-gradient-to-r from-yellow-600 to-yellow-800 p-8 border-4 border-yellow-400 cursor-pointer group"
+                        >
+                          <div className="flex items-center gap-4">
+                            <Plus className="w-12 h-12 text-white" />
+                            <div className="text-left">
+                              <h3 className="text-3xl font-black text-white mb-2">CREATE PITCH</h3>
+                              <p className="text-yellow-100 font-medium">Build your startup presentation</p>
+                            </div>
+                            <ArrowRight className="w-8 h-8 text-white group-hover:translate-x-2 transition-transform duration-300" />
+                          </div>
+                        </motion.div>
+                      </Link>
+
+                      <Link href="/dashboard">
+                        <motion.div
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          className="bg-gradient-to-r from-blue-600 to-blue-800 p-8 border-4 border-blue-400 cursor-pointer group"
+                        >
+                          <div className="flex items-center gap-4">
+                            <BarChart3 className="w-12 h-12 text-white" />
+                            <div className="text-left">
+                              <h3 className="text-3xl font-black text-white mb-2">VIEW DASHBOARD</h3>
+                              <p className="text-blue-100 font-medium">Manage your pitches</p>
+                            </div>
+                            <ArrowRight className="w-8 h-8 text-white group-hover:translate-x-2 transition-transform duration-300" />
+                          </div>
+                        </motion.div>
+                      </Link>
+                    </>
+                  )}
                 </div>
               </motion.div>
             </div>
@@ -220,24 +307,96 @@ export default function Home() {
                 </div>
               ) : (
                 <div className="flex flex-col sm:flex-row gap-6 justify-center">
-                  <Link href="/practice">
-                    <Button 
-                      size="lg" 
-                      className="bg-yellow-400 hover:bg-yellow-500 text-black font-black text-2xl px-12 py-6 border-4 border-black shadow-lg transform hover:scale-105 transition-all"
-                    >
-                      START PRACTICING
-                      <ArrowRight className="w-6 h-6 ml-2" />
-                    </Button>
-                  </Link>
-                  <Link href="/create">
-                    <Button 
-                      size="lg" 
-                      className="bg-transparent border-4 border-white text-white hover:bg-white hover:text-black font-black text-2xl px-12 py-6 shadow-lg transform hover:scale-105 transition-all"
-                    >
-                      CREATE PITCH
-                      <Brain className="w-6 h-6 ml-2" />
-                    </Button>
-                  </Link>
+                  {/* Role-specific CTAs */}
+                  {user?.role === 'INVESTOR' ? (
+                    // Investor-specific CTAs
+                    <>
+                      <Link href="/investors">
+                        <Button 
+                          size="lg" 
+                          className="bg-green-400 hover:bg-green-500 text-black font-black text-2xl px-12 py-6 border-4 border-black shadow-lg transform hover:scale-105 transition-all"
+                        >
+                          BROWSE PITCHES
+                          <Search className="w-6 h-6 ml-2" />
+                        </Button>
+                      </Link>
+                      <Link href="/dashboard">
+                        <Button 
+                          size="lg" 
+                          className="bg-transparent border-4 border-white text-white hover:bg-white hover:text-black font-black text-2xl px-12 py-6 shadow-lg transform hover:scale-105 transition-all"
+                        >
+                          INVESTMENT PORTFOLIO
+                          <DollarSign className="w-6 h-6 ml-2" />
+                        </Button>
+                      </Link>
+                    </>
+                  ) : user?.role === 'FOUNDER' ? (
+                    // Founder-specific CTAs
+                    <>
+                      <Link href="/practice">
+                        <Button 
+                          size="lg" 
+                          className="bg-yellow-400 hover:bg-yellow-500 text-black font-black text-2xl px-12 py-6 border-4 border-black shadow-lg transform hover:scale-105 transition-all"
+                        >
+                          START PRACTICING
+                          <ArrowRight className="w-6 h-6 ml-2" />
+                        </Button>
+                      </Link>
+                      <Link href="/create">
+                        <Button 
+                          size="lg" 
+                          className="bg-transparent border-4 border-white text-white hover:bg-white hover:text-black font-black text-2xl px-12 py-6 shadow-lg transform hover:scale-105 transition-all"
+                        >
+                          CREATE PITCH
+                          <Brain className="w-6 h-6 ml-2" />
+                        </Button>
+                      </Link>
+                    </>
+                  ) : user?.role === 'BOTH' ? (
+                    // Both roles - show all options
+                    <>
+                      <Link href="/create">
+                        <Button 
+                          size="lg" 
+                          className="bg-yellow-400 hover:bg-yellow-500 text-black font-black text-2xl px-12 py-6 border-4 border-black shadow-lg transform hover:scale-105 transition-all"
+                        >
+                          CREATE PITCH
+                          <Brain className="w-6 h-6 ml-2" />
+                        </Button>
+                      </Link>
+                      <Link href="/investors">
+                        <Button 
+                          size="lg" 
+                          className="bg-green-400 hover:bg-green-500 text-black font-black text-2xl px-12 py-6 border-4 border-black shadow-lg transform hover:scale-105 transition-all"
+                        >
+                          BROWSE PITCHES
+                          <Search className="w-6 h-6 ml-2" />
+                        </Button>
+                      </Link>
+                    </>
+                  ) : (
+                    // Default CTAs for users without role or not signed in
+                    <>
+                      <Link href="/practice">
+                        <Button 
+                          size="lg" 
+                          className="bg-yellow-400 hover:bg-yellow-500 text-black font-black text-2xl px-12 py-6 border-4 border-black shadow-lg transform hover:scale-105 transition-all"
+                        >
+                          START PRACTICING
+                          <ArrowRight className="w-6 h-6 ml-2" />
+                        </Button>
+                      </Link>
+                      <Link href="/create">
+                        <Button 
+                          size="lg" 
+                          className="bg-transparent border-4 border-white text-white hover:bg-white hover:text-black font-black text-2xl px-12 py-6 shadow-lg transform hover:scale-105 transition-all"
+                        >
+                          CREATE PITCH
+                          <Brain className="w-6 h-6 ml-2" />
+                        </Button>
+                      </Link>
+                    </>
+                  )}
                 </div>
               )}
             </motion.div>

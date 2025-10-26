@@ -6,8 +6,32 @@ interface ProvidersProps {
   children: React.ReactNode;
 }
 
+// Error boundary component for CDP provider
+function CDPErrorFallback({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="min-h-screen bg-gray-900 text-white">
+      <div className="container mx-auto px-4 py-8">
+        <div className="bg-yellow-900/20 border border-yellow-600 rounded-lg p-6 mb-6">
+          <h2 className="text-xl font-semibold text-yellow-400 mb-2">
+            Configuration Required
+          </h2>
+          <p className="text-yellow-200 mb-4">
+            The Coinbase CDP SDK is not properly configured. Please set up the required environment variables.
+          </p>
+          <div className="bg-gray-800 rounded p-3 text-sm font-mono">
+            <p className="text-gray-300">Missing: NEXT_PUBLIC_CDP_PROJECT_ID</p>
+          </div>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+const projectId = process.env.NEXT_PUBLIC_CDP_PROJECT_ID;
+
 const config: Config = {
-  projectId: process.env.NEXT_PUBLIC_CDP_PROJECT_ID!,
+  projectId: projectId || "placeholder-project-id",
   ethereum: {
     createOnLogin: "smart",
   },
@@ -42,9 +66,38 @@ const theme: Partial<Theme> = {
 };
 
 export default function Providers({ children }: ProvidersProps) {
-  return (
-    <CDPReactProvider config={config} theme={theme}>
-      {children}
-    </CDPReactProvider>
-  );
+  // If project ID is missing, show error fallback
+  if (!projectId || projectId === "your-project-id-here" || projectId === "placeholder-project-id") {
+    return <CDPErrorFallback>{children}</CDPErrorFallback>;
+  }
+
+  try {
+    return (
+      <CDPReactProvider config={config} theme={theme}>
+        {children}
+      </CDPReactProvider>
+    );
+  } catch (error) {
+    console.error("CDP Provider initialization error:", error);
+    // In production, try to recover gracefully
+    if (process.env.NODE_ENV === 'production') {
+      console.warn("CDP Provider failed in production, attempting fallback...");
+      return (
+        <div className="min-h-screen bg-gray-900 text-white">
+          <div className="container mx-auto px-4 py-8">
+            <div className="bg-red-900/20 border border-red-600 rounded-lg p-6 mb-6">
+              <h2 className="text-xl font-semibold text-red-400 mb-2">
+                Network Configuration Issue
+              </h2>
+              <p className="text-red-200 mb-4">
+                There's a network configuration issue. Please try refreshing the page or contact support.
+              </p>
+            </div>
+            {children}
+          </div>
+        </div>
+      );
+    }
+    return <CDPErrorFallback>{children}</CDPErrorFallback>;
+  }
 }
