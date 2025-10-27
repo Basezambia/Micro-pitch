@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { InvestorChatPayment } from "@/components/payments/BasePayComponents";
 import { useCurrentUser } from "@/components/auth/AuthWrapper";
+import PortfolioAnalytics from "@/components/dashboard/PortfolioAnalytics";
 
 interface DashboardView {
   id: string;
@@ -33,7 +34,7 @@ interface DashboardView {
 const views: DashboardView[] = [
   { id: "overview", name: "OVERVIEW", icon: BarChart3 },
   { id: "pitches", name: "PITCHES", icon: TrendingUp },
-  { id: "investors", name: "INVESTORS", icon: Users },
+  { id: "portfolio", name: "PORTFOLIO", icon: BarChart3 },
   { id: "chats", name: "CHATS", icon: MessageSquare }
 ];
 
@@ -41,6 +42,15 @@ export default function Dashboard() {
   const [activeView, setActiveView] = useState("overview");
   const [showFilters, setShowFilters] = useState(false);
   const { user } = useCurrentUser();
+
+  // Check URL parameters for initial tab selection
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const tab = urlParams.get('tab');
+    if (tab && views.some(view => view.id === tab)) {
+      setActiveView(tab);
+    }
+  }, []);
 
   // Mock data with enhanced fields
   const stats = {
@@ -485,8 +495,12 @@ export default function Dashboard() {
                   {chat.status === "CONFIRMED" ? (
                     <Button 
                       className="font-black bg-green-600 hover:bg-green-700"
+                      onClick={() => {
+                        // Navigate to chat session
+                        window.location.href = `/chat/${chat.id}`;
+                      }}
                     >
-                      JOIN
+                      JOIN CHAT
                     </Button>
                   ) : (
                     <InvestorChatPayment
@@ -515,13 +529,7 @@ export default function Dashboard() {
       case "overview": return renderOverview();
       case "pitches": return renderPitches();
       case "chats": return renderChats();
-      case "investors": return (
-        <div className="text-center py-20">
-          <Users className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-          <h2 className="text-2xl font-black text-white mb-2">INVESTOR CONNECTIONS</h2>
-          <p className="text-gray-400">Coming soon...</p>
-        </div>
-      );
+      case "portfolio": return <PortfolioAnalytics />;
       default: return renderOverview();
     }
   };

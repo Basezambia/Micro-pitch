@@ -14,7 +14,8 @@ import {
   Calendar,
   BarChart3,
   Target,
-  Filter
+  Filter,
+  Heart
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -28,6 +29,46 @@ export function InvestorDashboard() {
     scheduledChats: 2,
     completedChats: 12
   };
+
+  // Changed to represent saved/liked pitches instead of recent pitches
+  const savedPitches = [
+    {
+      id: '1',
+      title: 'AI-Powered Healthcare Platform',
+      founder: 'Sarah Chen',
+      category: 'Healthcare',
+      fundingGoal: 500000,
+      equityOffered: 10,
+      status: 'active',
+      interested: 15,
+      savedAt: '2024-01-18',
+      isLiked: true
+    },
+    {
+      id: '2',
+      title: 'Sustainable Energy Storage',
+      founder: 'David Kim',
+      category: 'CleanTech',
+      fundingGoal: 750000,
+      equityOffered: 12,
+      status: 'active',
+      interested: 8,
+      savedAt: '2024-01-16',
+      isLiked: true
+    },
+    {
+      id: '3',
+      title: 'Blockchain Supply Chain',
+      founder: 'Alex Thompson',
+      category: 'Blockchain',
+      fundingGoal: 300000,
+      equityOffered: 15,
+      status: 'active',
+      interested: 12,
+      savedAt: '2024-01-14',
+      isLiked: true
+    }
+  ];
 
   const recentPitches = [
     {
@@ -119,10 +160,12 @@ export function InvestorDashboard() {
               Chat Sessions
             </Button>
           </Link>
-          <Button>
-            <Search className="h-4 w-4 mr-2" />
-            Browse Pitches
-          </Button>
+          <Link href="/investors">
+            <Button>
+              <Search className="h-4 w-4 mr-2" />
+              Browse Pitches
+            </Button>
+          </Link>
         </div>
       </div>
 
@@ -182,20 +225,28 @@ export function InvestorDashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Pitches */}
+        {/* Saved/Liked Pitches */}
         <Card className="bg-gray-800/50 border-gray-700">
           <CardHeader>
-            <CardTitle className="text-white">Latest Pitches</CardTitle>
+            <CardTitle className="text-white flex items-center gap-2">
+              <Heart className="h-5 w-5 text-red-500 fill-current" />
+              Saved Pitches
+            </CardTitle>
             <CardDescription className="text-gray-400">
-              Discover new investment opportunities
+              Your liked and saved investment opportunities
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {recentPitches.map((pitch) => (
+              {savedPitches.map((pitch) => (
                 <div key={pitch.id} className="flex items-center justify-between p-3 bg-gray-700/30 rounded-lg">
                   <div className="flex-1">
-                    <h4 className="font-medium text-white">{pitch.title}</h4>
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-medium text-white">{pitch.title}</h4>
+                      {pitch.isLiked && (
+                        <Heart className="h-4 w-4 text-red-500 fill-current" />
+                      )}
+                    </div>
                     <p className="text-sm text-gray-400">by {pitch.founder}</p>
                     <div className="flex items-center gap-4 mt-1 text-xs text-gray-500">
                       <span className="flex items-center gap-1">
@@ -208,6 +259,7 @@ export function InvestorDashboard() {
                       </span>
                       <span>{pitch.equityOffered}% equity</span>
                     </div>
+                    <p className="text-xs text-gray-500 mt-1">Saved on {new Date(pitch.savedAt).toLocaleDateString()}</p>
                   </div>
                   <Badge className="bg-blue-600">
                     {pitch.category}
@@ -215,10 +267,12 @@ export function InvestorDashboard() {
                 </div>
               ))}
             </div>
-            <Button variant="outline" className="w-full mt-4">
-              <Search className="h-4 w-4 mr-2" />
-              Browse All Pitches
-            </Button>
+            <Link href="/investors">
+              <Button variant="outline" className="w-full mt-4">
+                <Search className="h-4 w-4 mr-2" />
+                Browse All Pitches
+              </Button>
+            </Link>
           </CardContent>
         </Card>
 
@@ -334,10 +388,12 @@ export function InvestorDashboard() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Button variant="outline" className="h-20 flex-col">
-              <Search className="h-6 w-6 mb-2" />
-              Browse Pitches
-            </Button>
+            <Link href="/investors">
+              <Button variant="outline" className="h-20 flex-col">
+                <Search className="h-6 w-6 mb-2" />
+                Browse Pitches
+              </Button>
+            </Link>
             <Button variant="outline" className="h-20 flex-col">
               <Filter className="h-6 w-6 mb-2" />
               Filter by Category

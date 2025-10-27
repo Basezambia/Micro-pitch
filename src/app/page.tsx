@@ -26,13 +26,13 @@ import { useEvmAddress } from "@coinbase/cdp-hooks";
 
 export default function Home() {
   const { isSignedIn } = useIsSignedIn();
-  const { user } = useCurrentUser();
+  const { user, isLoading } = useCurrentUser();
   const { evmAddress } = useEvmAddress();
   const [isUpdatingRole, setIsUpdatingRole] = useState(false);
   const { toast } = useToast();
 
   // Debug information (remove in production)
-  console.log('Auth Debug:', { isSignedIn, user, userRole: user?.role });
+  console.log('Auth Debug:', { isSignedIn, user, userRole: user?.role, isLoading });
 
   const handleRoleSelection = async (role: 'INVESTOR' | 'FOUNDER') => {
     if (!evmAddress) {
@@ -107,33 +107,6 @@ export default function Home() {
               MICRO<span className="text-yellow-400">PITCH</span>
             </Link>
             <div className="flex items-center space-x-8">
-              {isSignedIn && (
-                <>
-                  {/* Role-specific navigation options */}
-                  {user?.role === 'INVESTOR' && (
-                    <>
-                      <Link href="/investors">
-                        <Button 
-                          variant="ghost" 
-                          className="text-white hover:text-green-400 font-black text-lg border-2 border-transparent hover:border-green-400 px-6 py-3"
-                        >
-                          <Users className="w-5 h-5 mr-2" />
-                          FOR INVESTORS
-                        </Button>
-                      </Link>
-                      <Link href="/pitch">
-                        <Button 
-                          variant="ghost" 
-                          className="text-white hover:text-yellow-400 font-black text-lg border-2 border-transparent hover:border-yellow-400 px-6 py-3"
-                        >
-                          <Search className="w-5 h-5 mr-2" />
-                          BROWSE PITCHES
-                        </Button>
-                      </Link>
-                    </>
-                  )}
-                </>
-              )}
               <div className="border-l-4 border-gray-600 pl-6">
                 <AuthComponent />
               </div>
@@ -159,10 +132,16 @@ export default function Home() {
                   Ready to continue your startup journey?
                 </p>
 
-                {/* Role-specific action buttons */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-                  {/* Show role selection for users without a role */}
-                  {!user?.role && (
+                {/* Show loading state while fetching user data */}
+                {isLoading ? (
+                  <div className="text-center py-12">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-400 mx-auto"></div>
+                    <p className="text-gray-400 mt-4">Loading your profile...</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                    {/* Show role selection for users without a role */}
+                    {!user?.role && (
                     <>
                       <motion.div
                         whileHover={{ scale: 1.05 }}
@@ -275,7 +254,8 @@ export default function Home() {
                       </Link>
                     </>
                   )}
-                </div>
+                  </div>
+                )}
               </motion.div>
             </div>
           </div>

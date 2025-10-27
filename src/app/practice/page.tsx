@@ -266,9 +266,9 @@ export default function PracticePitch() {
     
     try {
       const result = await pay({
-        amount: '1.00', // USD amount (USDC used internally)
-        to: '0x742d35Cc6634C0532925a3b8D0C9e3e0C0C0C0C0', // Replace with actual recipient address
-        testnet: true // Set to false for mainnet
+        amount: '0.01', // Use base pay amount (0.01 USDC)
+        to: process.env.NEXT_PUBLIC_PLATFORM_WALLET_ADDRESS || '0x742d35Cc6634C0532925a3b8D4C9db96c4b4d8b6', // Platform wallet address
+        testnet: false // Use mainnet as per base pay system
       });
 
       // Payment successful - result contains id, amount, to properties

@@ -18,6 +18,7 @@ import {
   Eye,
   MessageSquare
 } from "lucide-react";
+import PitchDetailModal from "@/components/pitch/PitchDetailModal";
 
 interface Pitch {
   id: string;
@@ -51,6 +52,8 @@ export default function InvestorsDashboard() {
   const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedStage, setSelectedStage] = useState("");
   const [sortBy, setSortBy] = useState<"newest" | "popular" | "funding">("newest");
+  const [selectedPitch, setSelectedPitch] = useState<Pitch | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const categories = ["AI/ML", "FinTech", "HealthTech", "EdTech", "SaaS", "E-commerce", "Climate Tech", "Web3", "Mobile", "Other"];
   const stages = ["Pre-seed", "Seed", "Series A", "Series B", "Growth"];
@@ -107,8 +110,23 @@ export default function InvestorsDashboard() {
   };
 
   const bookSession = async (pitchId: string) => {
-    // This would open the pitch session interface
-    window.location.href = `/pitch?pitchId=${pitchId}&investorId=investor-wallet&ratePerSecond=0.01`;
+    // Instead of redirecting to pitch session, redirect to dashboard where they can see scheduled calls
+    window.location.href = `/dashboard?tab=chats&scheduled=true`;
+  };
+
+  const handleViewPitch = (pitch: Pitch) => {
+    setSelectedPitch(pitch);
+    setIsModalOpen(true);
+  };
+
+  const handleStartChat = (pitchId: string) => {
+    // Navigate to chat with the founder
+    window.location.href = `/chat/new?pitchId=${pitchId}&type=instant`;
+  };
+
+  const handleScheduleCall = (pitchId: string) => {
+    // Schedule a call - same as book session for now
+    bookSession(pitchId);
   };
 
   if (loading) {
@@ -343,12 +361,13 @@ export default function InvestorsDashboard() {
                       onClick={() => bookSession(pitch.id)}
                     >
                       <Clock className="w-4 h-4 mr-1" />
-                      Book Session
+                      SCHEDULE CALL
                     </Button>
                     <Button
                       size="sm"
                       variant="outline"
                       className="border-gray-600 hover:bg-gray-800"
+                      onClick={() => handleViewPitch(pitch)}
                     >
                       <Eye className="w-4 h-4" />
                     </Button>
@@ -367,6 +386,15 @@ export default function InvestorsDashboard() {
           </div>
         )}
       </div>
+
+      {/* Pitch Detail Modal */}
+      <PitchDetailModal
+        pitch={selectedPitch}
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onScheduleCall={handleScheduleCall}
+        onStartChat={handleStartChat}
+      />
     </div>
   );
 }

@@ -192,6 +192,7 @@ export const AuthWrapper: React.FC<AuthWrapperProps> = ({
         onRoleSelected={handleRoleSelection}
         userName={user.name}
         userEmail={user.email}
+        currentUserRole={user.role}
       />
     );
   }
@@ -221,14 +222,17 @@ export const useCurrentUser = () => {
   const { isSignedIn } = useIsSignedIn();
   const { evmAddress } = useEvmAddress();
   const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     const fetchUserData = async () => {
       if (!isSignedIn || !evmAddress) {
         setUser(null);
+        setIsLoading(false);
         return;
       }
 
+      setIsLoading(true);
       try {
         const response = await fetch(`/api/auth?walletAddress=${encodeURIComponent(evmAddress)}`);
         
@@ -247,13 +251,15 @@ export const useCurrentUser = () => {
       } catch (error) {
         console.error('Failed to fetch user data:', error);
         setUser(null);
+      } finally {
+        setIsLoading(false);
       }
     };
 
     fetchUserData();
   }, [isSignedIn, evmAddress]);
 
-  return { user, isSignedIn };
+  return { user, isSignedIn, isLoading };
 };
 
 // Dashboard Router Component

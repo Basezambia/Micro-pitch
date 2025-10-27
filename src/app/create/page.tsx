@@ -37,6 +37,19 @@ interface PitchFormData {
   teamSize: number;
   stage: string;
   deckUrl: string;
+  // Pre-defined pitch sections
+  sections: {
+    problemStatement: string;
+    solution: string;
+    marketSize: string;
+    businessModel: string;
+    competitiveAdvantage: string;
+    financialProjections: string;
+    fundingUse: string;
+    teamBackground: string;
+    milestones: string;
+    riskFactors: string;
+  };
 }
 
 const categories = [
@@ -76,7 +89,19 @@ export default function CreatePitch() {
     traction: "",
     teamSize: 1,
     stage: "Pre-seed",
-    deckUrl: ""
+    deckUrl: "",
+    sections: {
+      problemStatement: "",
+      solution: "",
+      marketSize: "",
+      businessModel: "",
+      competitiveAdvantage: "",
+      financialProjections: "",
+      fundingUse: "",
+      teamBackground: "",
+      milestones: "",
+      riskFactors: ""
+    }
   });
 
   const updateFormData = (field: keyof PitchFormData, value: any) => {
@@ -109,7 +134,7 @@ export default function CreatePitch() {
       if (response.ok) {
         const result = await response.json();
         setAnalysisResult(result);
-        setCurrentStep(5); // Move to analysis step
+        setCurrentStep(6); // Move to analysis step
       } else {
         throw new Error('Failed to analyze pitch');
       }
@@ -167,10 +192,11 @@ export default function CreatePitch() {
 
   const steps = [
     { id: 1, title: "Basic Info", icon: Lightbulb },
-    { id: 2, title: "Business Details", icon: Target },
-    { id: 3, title: "Financials", icon: DollarSign },
-    { id: 4, title: "Review", icon: CheckCircle },
-    { id: 5, title: "AI Analysis", icon: Brain }
+    { id: 2, title: "Pitch Sections", icon: FileText },
+    { id: 3, title: "Business Details", icon: Target },
+    { id: 4, title: "Financials", icon: DollarSign },
+    { id: 5, title: "Review", icon: CheckCircle },
+    { id: 6, title: "AI Analysis", icon: Brain }
   ];
 
   if (isSuccess) {
@@ -348,6 +374,123 @@ export default function CreatePitch() {
             <Card className="bg-gray-900/50 border-gray-800 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="flex items-center">
+                  <FileText className="w-6 h-6 mr-2 text-yellow-400" />
+                  Pitch Sections
+                </CardTitle>
+                <p className="text-gray-400 text-sm mt-2">
+                  Complete these structured sections to create a comprehensive pitch
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Problem Statement</label>
+                    <textarea
+                      className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:border-yellow-400 focus:outline-none h-24"
+                      placeholder="What problem are you solving? Why is it important?"
+                      value={formData.sections.problemStatement}
+                      onChange={(e) => updateFormData('sections', { ...formData.sections, problemStatement: e.target.value })}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Solution</label>
+                    <textarea
+                      className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:border-yellow-400 focus:outline-none h-24"
+                      placeholder="How does your product/service solve this problem?"
+                      value={formData.sections.solution}
+                      onChange={(e) => updateFormData('sections', { ...formData.sections, solution: e.target.value })}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Market Size</label>
+                    <textarea
+                      className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:border-yellow-400 focus:outline-none h-24"
+                      placeholder="What's the total addressable market (TAM)? Market opportunity?"
+                      value={formData.sections.marketSize}
+                      onChange={(e) => updateFormData('sections', { ...formData.sections, marketSize: e.target.value })}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Business Model</label>
+                    <textarea
+                      className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:border-yellow-400 focus:outline-none h-24"
+                      placeholder="How do you make money? Revenue streams?"
+                      value={formData.sections.businessModel}
+                      onChange={(e) => updateFormData('sections', { ...formData.sections, businessModel: e.target.value })}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Competitive Advantage</label>
+                    <textarea
+                      className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:border-yellow-400 focus:outline-none h-24"
+                      placeholder="What makes you unique? Your moat?"
+                      value={formData.sections.competitiveAdvantage}
+                      onChange={(e) => updateFormData('sections', { ...formData.sections, competitiveAdvantage: e.target.value })}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Financial Projections</label>
+                    <textarea
+                      className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:border-yellow-400 focus:outline-none h-24"
+                      placeholder="Revenue projections, key metrics, growth expectations"
+                      value={formData.sections.financialProjections}
+                      onChange={(e) => updateFormData('sections', { ...formData.sections, financialProjections: e.target.value })}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Use of Funds</label>
+                    <textarea
+                      className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:border-yellow-400 focus:outline-none h-24"
+                      placeholder="How will you use the investment? Breakdown of fund allocation"
+                      value={formData.sections.fundingUse}
+                      onChange={(e) => updateFormData('sections', { ...formData.sections, fundingUse: e.target.value })}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Team Background</label>
+                    <textarea
+                      className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:border-yellow-400 focus:outline-none h-24"
+                      placeholder="Key team members, their experience, and relevant expertise"
+                      value={formData.sections.teamBackground}
+                      onChange={(e) => updateFormData('sections', { ...formData.sections, teamBackground: e.target.value })}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Key Milestones</label>
+                    <textarea
+                      className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:border-yellow-400 focus:outline-none h-24"
+                      placeholder="Past achievements and future milestones with timeline"
+                      value={formData.sections.milestones}
+                      onChange={(e) => updateFormData('sections', { ...formData.sections, milestones: e.target.value })}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Risk Factors</label>
+                    <textarea
+                      className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:border-yellow-400 focus:outline-none h-24"
+                      placeholder="Key risks and how you plan to mitigate them"
+                      value={formData.sections.riskFactors}
+                      onChange={(e) => updateFormData('sections', { ...formData.sections, riskFactors: e.target.value })}
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {currentStep === 3 && (
+            <Card className="bg-gray-900/50 border-gray-800 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle className="flex items-center">
                   <Target className="w-6 h-6 mr-2 text-yellow-400" />
                   Business Details
                 </CardTitle>
@@ -407,7 +550,7 @@ export default function CreatePitch() {
             </Card>
           )}
 
-          {currentStep === 3 && (
+          {currentStep === 4 && (
             <Card className="bg-gray-900/50 border-gray-800 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="flex items-center">
@@ -458,7 +601,7 @@ export default function CreatePitch() {
             </Card>
           )}
 
-          {currentStep === 4 && (
+          {currentStep === 6 && (
             <Card className="bg-gray-900/50 border-gray-800 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="flex items-center">
@@ -674,8 +817,8 @@ export default function CreatePitch() {
             variant="outline"
             className="border-gray-600 text-white hover:bg-gray-800"
             onClick={() => {
-              if (currentStep === 5 && !analysisResult) {
-                setCurrentStep(4);
+              if (currentStep === 6 && !analysisResult) {
+                setCurrentStep(5);
               } else {
                 setCurrentStep(Math.max(1, currentStep - 1));
               }
@@ -685,15 +828,15 @@ export default function CreatePitch() {
             Previous
           </Button>
 
-          {currentStep < 4 ? (
+          {currentStep < 5 ? (
             <Button
               className="bg-yellow-400 text-black hover:bg-yellow-300"
-              onClick={() => setCurrentStep(Math.min(4, currentStep + 1))}
+              onClick={() => setCurrentStep(Math.min(5, currentStep + 1))}
             >
               Next
               <ChevronRight className="w-4 h-4 ml-2" />
             </Button>
-          ) : currentStep === 4 ? (
+          ) : currentStep === 5 ? (
             <Button
               className="bg-purple-500 hover:bg-purple-600"
               onClick={analyzePitch}

@@ -11,12 +11,14 @@ interface RoleSelectionProps {
   onRoleSelected: (role: 'FOUNDER' | 'INVESTOR') => void;
   userEmail?: string;
   userName?: string;
+  currentUserRole?: 'FOUNDER' | 'INVESTOR' | null;
 }
 
 export const RoleSelection: React.FC<RoleSelectionProps> = ({
   onRoleSelected,
   userEmail,
-  userName
+  userName,
+  currentUserRole
 }) => {
   const [selectedRole, setSelectedRole] = useState<'FOUNDER' | 'INVESTOR' | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -65,93 +67,118 @@ export const RoleSelection: React.FC<RoleSelectionProps> = ({
 
         {/* Role Cards */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* Founder Card */}
-          <Card 
-            className={`cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-105 ${
-              selectedRole === 'FOUNDER' ? 'ring-2 ring-blue-500 bg-blue-50' : ''
-            }`}
-            onClick={() => !isSubmitting && handleRoleSelection('FOUNDER')}
-          >
-            <CardHeader className="text-center">
-              <div className="mx-auto mb-4 p-3 bg-blue-100 rounded-full w-fit">
-                <Lightbulb className="h-8 w-8 text-blue-600" />
-              </div>
-              <CardTitle className="text-2xl">I'm a Founder</CardTitle>
-              <CardDescription className="text-base">
-                I have a startup idea or business that needs funding
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <h4 className="font-semibold text-gray-900">What you can do:</h4>
-                <ul className="space-y-1 text-sm text-gray-600">
-                  <li className="flex items-center gap-2">
-                    <Target className="h-4 w-4 text-green-500" />
-                    Create and manage your pitches
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <Users className="h-4 w-4 text-green-500" />
-                    Connect with investors
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <TrendingUp className="h-4 w-4 text-green-500" />
-                    Practice your pitch with AI feedback
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <DollarSign className="h-4 w-4 text-green-500" />
-                    Track funding progress
-                  </li>
-                </ul>
-              </div>
-              <Badge variant="secondary" className="w-full justify-center">
-                0.01 USDC per pitch creation/practice
-              </Badge>
-            </CardContent>
-          </Card>
+          {/* Founder Card - Only show if user doesn't already have a role */}
+          {!currentUserRole && (
+            <Card 
+              className={`cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-105 ${
+                selectedRole === 'FOUNDER' ? 'ring-2 ring-blue-500 bg-blue-50' : ''
+              }`}
+              onClick={() => !isSubmitting && handleRoleSelection('FOUNDER')}
+            >
+              <CardHeader className="text-center">
+                <div className="mx-auto mb-4 p-3 bg-blue-100 rounded-full w-fit">
+                  <Lightbulb className="h-8 w-8 text-blue-600" />
+                </div>
+                <CardTitle className="text-2xl">I'm a Founder</CardTitle>
+                <CardDescription className="text-base">
+                  I have a startup idea or business that needs funding
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <h4 className="font-semibold text-gray-900">What you can do:</h4>
+                  <ul className="space-y-1 text-sm text-gray-600">
+                    <li className="flex items-center gap-2">
+                      <Target className="h-4 w-4 text-green-500" />
+                      Create and manage your pitches
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Users className="h-4 w-4 text-green-500" />
+                      Connect with investors
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <TrendingUp className="h-4 w-4 text-green-500" />
+                      Practice your pitch with AI feedback
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <DollarSign className="h-4 w-4 text-green-500" />
+                      Track funding progress
+                    </li>
+                  </ul>
+                </div>
+                <Badge variant="secondary" className="w-full justify-center">
+                  0.01 USDC per pitch creation/practice
+                </Badge>
+              </CardContent>
+            </Card>
+          )}
 
-          {/* Investor Card */}
-          <Card 
-            className={`cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-105 ${
-              selectedRole === 'INVESTOR' ? 'ring-2 ring-green-500 bg-green-50' : ''
-            }`}
-            onClick={() => !isSubmitting && handleRoleSelection('INVESTOR')}
-          >
-            <CardHeader className="text-center">
-              <div className="mx-auto mb-4 p-3 bg-green-100 rounded-full w-fit">
-                <DollarSign className="h-8 w-8 text-green-600" />
+          {/* Investor Card - Only show if user doesn't already have a role */}
+          {!currentUserRole && (
+            <Card 
+              className={`cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-105 ${
+                selectedRole === 'INVESTOR' ? 'ring-2 ring-green-500 bg-green-50' : ''
+              }`}
+              onClick={() => !isSubmitting && handleRoleSelection('INVESTOR')}
+            >
+              <CardHeader className="text-center">
+                <div className="mx-auto mb-4 p-3 bg-green-100 rounded-full w-fit">
+                  <DollarSign className="h-8 w-8 text-green-600" />
+                </div>
+                <CardTitle className="text-2xl">I'm an Investor</CardTitle>
+                <CardDescription className="text-base">
+                  I'm looking to invest in promising startups and founders
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <h4 className="font-semibold text-gray-900">What you can do:</h4>
+                  <ul className="space-y-1 text-sm text-gray-600">
+                    <li className="flex items-center gap-2">
+                      <Target className="h-4 w-4 text-blue-500" />
+                      Browse and discover pitches
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Users className="h-4 w-4 text-blue-500" />
+                      Chat with founders (5 min sessions)
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <TrendingUp className="h-4 w-4 text-blue-500" />
+                      Track your investment portfolio
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Building2 className="h-4 w-4 text-blue-500" />
+                      Access detailed pitch analytics
+                    </li>
+                  </ul>
+                </div>
+                <Badge variant="secondary" className="w-full justify-center">
+                  0.1 USDC per founder chat session
+                </Badge>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Show message when user already has a role */}
+          {currentUserRole && (
+            <div className="col-span-full text-center py-12">
+              <div className="max-w-md mx-auto">
+                <h3 className="text-2xl font-bold text-gray-900 mb-4">
+                  Welcome back!
+                </h3>
+                <p className="text-lg text-gray-600 mb-6">
+                  You're already registered as a {currentUserRole.toLowerCase()}. 
+                  You can access your dashboard directly.
+                </p>
+                <Button 
+                  onClick={() => onRoleSelected(currentUserRole)}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  Go to Dashboard
+                </Button>
               </div>
-              <CardTitle className="text-2xl">I'm an Investor</CardTitle>
-              <CardDescription className="text-base">
-                I'm looking to invest in promising startups and founders
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <h4 className="font-semibold text-gray-900">What you can do:</h4>
-                <ul className="space-y-1 text-sm text-gray-600">
-                  <li className="flex items-center gap-2">
-                    <Target className="h-4 w-4 text-blue-500" />
-                    Browse and discover pitches
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <Users className="h-4 w-4 text-blue-500" />
-                    Chat with founders (5 min sessions)
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <TrendingUp className="h-4 w-4 text-blue-500" />
-                    Track your investment portfolio
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <Building2 className="h-4 w-4 text-blue-500" />
-                    Access detailed pitch analytics
-                  </li>
-                </ul>
-              </div>
-              <Badge variant="secondary" className="w-full justify-center">
-                0.1 USDC per founder chat session
-              </Badge>
-            </CardContent>
-          </Card>
+            </div>
+          )}
         </div>
 
         {/* Loading State */}
