@@ -110,6 +110,13 @@ body {
   color: black !important;
 }
 
+/* --- Overlay Fix: ensure modal overlays the entire viewport --- */
+[data-testid="cdp-auth-modal"] [role="dialog"],
+[class*="cdp-auth"] [role="dialog"] {
+  position: fixed !important;
+  inset: 0 !important; /* top/right/bottom/left: 0 */
+}
+
 [data-testid="cdp-auth-modal"] .cdp-auth-content,
 [data-testid="cdp-auth-modal"] [role="dialog"] > div {
   background-color: white !important;

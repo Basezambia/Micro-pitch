@@ -155,8 +155,8 @@ export default function Dashboard() {
 
       {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Show create/practice options only for founders or users with both roles */}
-        {(user?.role === 'FOUNDER' || user?.role === 'BOTH') && (
+        {/* Show create/practice options only for founders */}
+              {user?.role === 'FOUNDER' && (
           <>
             <Link href="/create">
               <motion.div
@@ -192,8 +192,8 @@ export default function Dashboard() {
           </>
         )}
 
-        {/* Show investor-specific options for investors or users with both roles */}
-        {(user?.role === 'INVESTOR' || user?.role === 'BOTH') && (
+        {/* Show investor-specific options for investors */}
+              {user?.role === 'INVESTOR' && (
           <>
             <Link href="/investors">
               <motion.div

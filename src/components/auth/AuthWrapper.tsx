@@ -8,7 +8,7 @@ import { FounderDashboard } from '@/components/dashboard/FounderDashboard';
 import { InvestorDashboard } from '@/components/dashboard/InvestorDashboard';
 import { useToast } from '@/hooks/use-toast';
 
-type UserRole = 'FOUNDER' | 'INVESTOR' | 'BOTH' | null;
+type UserRole = 'FOUNDER' | 'INVESTOR' | null;
 
 interface User {
   id: string;
@@ -26,7 +26,7 @@ interface AuthWrapperProps {
 export const AuthWrapper: React.FC<AuthWrapperProps> = ({ 
   children, 
   requireAuth = false,
-  allowedRoles = ['FOUNDER', 'INVESTOR', 'BOTH']
+  allowedRoles = ['FOUNDER', 'INVESTOR']
 }) => {
   const { isSignedIn } = useIsSignedIn();
   const { evmAddress } = useEvmAddress();
@@ -38,38 +38,61 @@ export const AuthWrapper: React.FC<AuthWrapperProps> = ({
 
   // Load user data when signed in
   useEffect(() => {
-    const loadUserData = async () => {
-      if (!isSignedIn || !evmAddress) {
-        setUser(null);
-        setIsLoading(false);
-        return;
-      }
+    if (!isSignedIn || !evmAddress) {
+      setUser(null);
+      setShowRoleSelection(false);
+      setIsLoading(false);
+      return;
+    }
 
+    const loadUserData = async () => {
       try {
         setIsLoading(true);
         
-        // Simulate API call to get user data
-        // In a real app, this would be an actual API call
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        // Mock user data - replace with actual API call
-        const userData: User = {
-          id: evmAddress || 'mock-user-id',
-          email: 'user@example.com', // This would come from your backend
-          name: 'User Name', // This would come from your backend
-          role: null // Initially null, will be set after role selection
-        };
-
-        // Check if user has already selected a role (from localStorage for demo)
-        const savedRole = localStorage.getItem(`user_role_${userData.id}`) as UserRole;
-        if (savedRole) {
-          userData.role = savedRole;
-          setUser(userData);
-          setShowRoleSelection(false);
-        } else {
-          setUser(userData);
-          setShowRoleSelection(true);
+        // Try to fetch user data from database API first
+        try {
+          const response = await fetch(`/api/auth?walletAddress=${encodeURIComponent(evmAddress)}`);
+          
+          if (response.ok) {
+            const { user: dbUser } = await response.json();
+            const userData: User = {
+              id: dbUser.id,
+              email: dbUser.email || 'user@example.com',
+              name: dbUser.name || 'User Name',
+              role: dbUser.role
+            };
+            
+            setUser(userData);
+            setShowRoleSelection(!dbUser.role);
+            return; // Successfully loaded from database
+          } else if (response.status === 404) {
+            // User doesn't exist in database, show role selection
+            const userData: User = {
+              id: evmAddress,
+              email: 'user@example.com',
+              name: 'User Name',
+              role: null
+            };
+            setUser(userData);
+            setShowRoleSelection(true); // Always show role selection for new users
+            return;
+          }
+        } catch (dbError) {
+          console.warn('Database unavailable, falling back to localStorage:', dbError);
         }
+        
+        // Fallback to localStorage if database is unavailable
+        const savedRole = localStorage.getItem(`userRole_${evmAddress}`) as UserRole | null;
+        const userData: User = {
+          id: evmAddress,
+          email: 'user@example.com',
+          name: 'User Name',
+          role: savedRole
+        };
+        
+        setUser(userData);
+        setShowRoleSelection(!savedRole);
+        
       } catch (error) {
         console.error('Failed to load user data:', error);
         toast({
@@ -91,21 +114,39 @@ export const AuthWrapper: React.FC<AuthWrapperProps> = ({
     try {
       setIsLoading(true);
       
-      // Simulate API call to save user role
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Save role to localStorage (in a real app, this would be saved to your backend)
-      localStorage.setItem(`user_role_${user.id}`, role || '');
+      // Save role to database via API
+      const response = await fetch('/api/auth', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          walletAddress: user.id,
+          email: user.email,
+          name: user.name,
+          role: role
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save user role');
+      }
+
+      const { user: updatedDbUser } = await response.json();
       
       // Update user state
-      const updatedUser = { ...user, role };
+      const updatedUser = { 
+        ...user, 
+        role: updatedDbUser.role,
+        id: updatedDbUser.id 
+      };
       setUser(updatedUser);
       setSelectedRole(role);
       setShowRoleSelection(false);
 
       toast({
         title: 'Role Selected',
-        description: `Welcome to MicroPitch as ${role === 'BOTH' ? 'a Founder and Investor' : role === 'FOUNDER' ? 'a Founder' : 'an Investor'}!`,
+        description: `Welcome to MicroPitch as ${role === 'FOUNDER' ? 'a Founder' : 'an Investor'}!`,
       });
     } catch (error) {
       console.error('Failed to save user role:', error);
@@ -182,22 +223,34 @@ export const useCurrentUser = () => {
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
-    if (!isSignedIn || !evmAddress) {
-      setUser(null);
-      return;
-    }
+    const fetchUserData = async () => {
+      if (!isSignedIn || !evmAddress) {
+        setUser(null);
+        return;
+      }
 
-    const userId = evmAddress || 'mock-user-id';
-    const savedRole = localStorage.getItem(`user_role_${userId}`) as UserRole;
-    
-    if (savedRole) {
-      setUser({
-        id: userId,
-        email: 'user@example.com',
-        name: 'User Name',
-        role: savedRole
-      });
-    }
+      try {
+        const response = await fetch(`/api/auth?walletAddress=${encodeURIComponent(evmAddress)}`);
+        
+        if (response.ok) {
+          const { user: dbUser } = await response.json();
+          setUser({
+            id: dbUser.id,
+            email: dbUser.email || 'user@example.com',
+            name: dbUser.name || 'User Name',
+            role: dbUser.role
+          });
+        } else {
+          // User not found in database, set to null
+          setUser(null);
+        }
+      } catch (error) {
+        console.error('Failed to fetch user data:', error);
+        setUser(null);
+      }
+    };
+
+    fetchUserData();
   }, [isSignedIn, evmAddress]);
 
   return { user, isSignedIn };
@@ -224,12 +277,6 @@ export const DashboardRouter: React.FC = () => {
     case 'INVESTOR':
       return (
         <InvestorDashboard />
-      );
-    case 'BOTH':
-      // For users with both roles, default to founder dashboard
-      // You could add a role switcher here
-      return (
-        <FounderDashboard />
       );
     default:
       return (

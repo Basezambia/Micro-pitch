@@ -89,8 +89,6 @@ export default function ChatPage() {
         return session.founderId === user.id;
       } else if (user.role === 'INVESTOR') {
         return session.investorId === user.id;
-      } else if (user.role === 'BOTH') {
-        return session.founderId === user.id || session.investorId === user.id;
       }
       return false;
     });

@@ -8,6 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import VoiceAgent from "@/components/VoiceAgent";
 import { useIsSignedIn } from "@coinbase/cdp-hooks";
 import { PitchPracticePayment } from "@/components/payments/BasePayComponents";
+import { pay } from '@base-org/account';
+import { useToast } from '@/hooks/use-toast';
 import { 
   Mic, 
   MicOff, 
@@ -24,6 +26,8 @@ import {
   Shield,
   Brain
 } from "lucide-react";
+import RealtimeTranscription from "@/components/RealtimeTranscription";
+import RealtimeAICoach from "@/components/RealtimeAICoach";
 
 interface Message {
   id: string;
@@ -37,22 +41,26 @@ interface FeedbackItem {
   content: string;
 }
 
-type UIState = 'selection' | 'recording' | 'feedback' | 'ai-coach';
+type UIState = 'selection' | 'option-details' | 'payment' | 'recording' | 'feedback' | 'ai-coach' | 'realtime-transcription' | 'realtime-ai-coach';
 
 export default function PracticePitch() {
   const { isSignedIn } = useIsSignedIn();
+  const { toast } = useToast();
   const [uiState, setUIState] = useState<UIState>('selection');
   const [isRecording, setIsRecording] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [currentTranscript, setCurrentTranscript] = useState("");
   const [feedback, setFeedback] = useState<FeedbackItem[]>([]);
-  const [practiceMode, setPracticeMode] = useState<'free' | 'guided' | 'qa'>('guided');
+  const [practiceMode, setPracticeMode] = useState<'free' | 'guided' | 'qa' | 'realtime'>('free');
   const [duration, setDuration] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isPaid, setIsPaid] = useState(false);
   const [paymentId, setPaymentId] = useState<string | null>(null);
-  
+  const [selectedOption, setSelectedOption] = useState<'free' | 'guided' | 'qa' | 'realtime' | null>(null);
+  const [isPaymentProcessing, setIsPaymentProcessing] = useState(false);
+  const [useRealtimeTranscription, setUseRealtimeTranscription] = useState(false);
+  const [realtimeTranscript, setRealtimeTranscript] = useState("");
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -103,17 +111,52 @@ export default function PracticePitch() {
       mediaRecorder.onstop = async () => {
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
         
-        const reader = new FileReader();
-        reader.onloadend = async () => {
-          const base64Audio = reader.result as string;
+        setIsProcessing(true);
+        
+        try {
+          // Create FormData for transcription API
+          const formData = new FormData();
+          formData.append('audio', audioBlob, 'recording.wav');
           
-          const simulatedTranscript = "This is a simulated transcript of your pitch practice session.";
-          setCurrentTranscript(simulatedTranscript);
+          // Call transcription API
+          const transcriptionResponse = await fetch('/api/transcribe', {
+            method: 'POST',
+            body: formData,
+          });
           
-          await getAIFeedback(simulatedTranscript);
+          if (transcriptionResponse.ok) {
+            const transcriptionData = await transcriptionResponse.json();
+            const transcript = transcriptionData.transcript || "Unable to transcribe audio. Please try again.";
+            setCurrentTranscript(transcript);
+            
+            // Only get AI feedback for paid sessions
+            if (isPaid) {
+              await getAIFeedback(transcript);
+            }
+            setUIState('feedback');
+          } else {
+            // Fallback to simulated transcript if transcription fails
+            const fallbackTranscript = "Transcription service unavailable. This is a simulated transcript of your pitch practice session.";
+            setCurrentTranscript(fallbackTranscript);
+            
+            if (isPaid) {
+              await getAIFeedback(fallbackTranscript);
+            }
+            setUIState('feedback');
+          }
+        } catch (error) {
+          console.error('Error transcribing audio:', error);
+          // Fallback to simulated transcript
+          const fallbackTranscript = "Error occurred during transcription. This is a simulated transcript of your pitch practice session.";
+          setCurrentTranscript(fallbackTranscript);
+          
+          if (isPaid) {
+            await getAIFeedback(fallbackTranscript);
+          }
           setUIState('feedback');
-        };
-        reader.readAsDataURL(audioBlob);
+        } finally {
+          setIsProcessing(false);
+        }
       };
 
       mediaRecorder.start();
@@ -215,6 +258,46 @@ export default function PracticePitch() {
     setMessages(prev => [...prev, newMessage]);
   };
 
+  // Handle direct Base Pay
+  const handleDirectBasePay = async () => {
+    if (!selectedOption) return;
+    
+    setIsPaymentProcessing(true);
+    
+    try {
+      const result = await pay({
+        amount: '1.00', // USD amount (USDC used internally)
+        to: '0x742d35Cc6634C0532925a3b8D0C9e3e0C0C0C0C0', // Replace with actual recipient address
+        testnet: true // Set to false for mainnet
+      });
+
+      // Payment successful - result contains id, amount, to properties
+      setIsPaid(true);
+      setPaymentId(result.id); // result.id is the transaction hash
+      
+      toast({
+        title: "Payment Successful!",
+        description: "Your practice session is now ready to start.",
+      });
+
+      // Automatically start the practice after payment
+      if (selectedOption === 'guided') {
+        setUIState('realtime-ai-coach');
+      } else {
+        startRecording();
+      }
+    } catch (error: any) {
+      console.error('Base Pay failed:', error);
+      toast({
+        title: "Payment Failed",
+        description: error.message || "There was an issue processing your payment. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsPaymentProcessing(false);
+    }
+  };
+
   const resetPractice = () => {
     setIsRecording(false);
     setIsPlaying(false);
@@ -230,6 +313,7 @@ export default function PracticePitch() {
       id: 'free',
       name: 'Free Practice',
       description: 'Practice your pitch without guidance',
+      detailedDescription: 'Record your pitch and get basic feedback without any coaching or interruptions. Perfect for rehearsing your presentation flow and timing.',
       icon: Mic,
       color: 'from-blue-600 to-blue-800',
       accent: 'border-blue-500'
@@ -238,6 +322,7 @@ export default function PracticePitch() {
       id: 'guided',
       name: 'AI Coach',
       description: 'Get real-time AI coaching',
+      detailedDescription: 'Practice with an AI coach that provides real-time feedback, suggestions, and guidance throughout your pitch. Interactive coaching to improve your delivery.',
       icon: Brain,
       color: 'from-purple-600 to-purple-800',
       accent: 'border-purple-500'
@@ -246,6 +331,7 @@ export default function PracticePitch() {
       id: 'qa',
       name: 'Investor Q&A',
       description: 'Practice answering investor questions',
+      detailedDescription: 'Simulate a real investor meeting with AI-generated questions based on your pitch. Practice handling tough questions and objections.',
       icon: MessageSquare,
       color: 'from-green-600 to-green-800',
       accent: 'border-green-500'
@@ -258,7 +344,7 @@ export default function PracticePitch() {
 
   return (
     <div className="min-h-screen bg-black text-white relative overflow-hidden">
-      {/* Brutalist geometric background */}
+      {/* Geometric background matching dashboard */}
       <div className="absolute inset-0">
         <div className="absolute top-0 left-0 w-96 h-96 bg-gradient-to-br from-yellow-400/10 to-transparent transform -rotate-45 -translate-x-48 -translate-y-48" />
         <div className="absolute bottom-0 right-0 w-96 h-96 bg-gradient-to-tl from-blue-400/10 to-transparent transform rotate-45 translate-x-48 translate-y-48" />
@@ -266,7 +352,7 @@ export default function PracticePitch() {
       </div>
 
       <div className="relative z-10 p-8">
-        {/* Brutalist Header */}
+        {/* Header matching dashboard style */}
         <motion.div 
           className="mb-12"
           initial={{ opacity: 0, y: -20 }}
@@ -295,27 +381,26 @@ export default function PracticePitch() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
                 {modes.map((mode) => {
                   const Icon = mode.icon;
-                  const isSelected = practiceMode === mode.id;
                   
                   return (
                     <motion.div
                       key={mode.id}
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
-                      className={`relative cursor-pointer group ${isSelected ? 'z-10' : ''}`}
-                      onClick={() => setPracticeMode(mode.id as any)}
+                      className="relative cursor-pointer group"
+                      onClick={() => {
+                        setSelectedOption(mode.id as any);
+                        setUIState('option-details');
+                      }}
                     >
                       <div className={`
-                        bg-gradient-to-br ${mode.color} p-8 
-                        border-4 ${isSelected ? mode.accent : 'border-gray-700'} 
+                        bg-gray-900 p-8 
+                        border-2 border-gray-700 hover:border-gray-600
                         shadow-2xl transform transition-all duration-300
-                        ${isSelected ? 'shadow-yellow-400/20 scale-105' : 'hover:shadow-xl'}
+                        hover:shadow-xl hover:shadow-yellow-400/10
                       `}>
                         <div className="flex flex-col items-center text-center space-y-4">
-                          <div className={`
-                            w-20 h-20 rounded-full bg-black/20 flex items-center justify-center
-                            border-2 ${isSelected ? 'border-white' : 'border-gray-400'}
-                          `}>
+                          <div className="w-20 h-20 rounded-full bg-black/20 flex items-center justify-center border-2 border-gray-400 group-hover:border-white transition-colors">
                             <Icon className="w-10 h-10 text-white" />
                           </div>
                           
@@ -328,15 +413,9 @@ export default function PracticePitch() {
                             </p>
                           </div>
                           
-                          {isSelected && (
-                            <motion.div
-                              initial={{ scale: 0 }}
-                              animate={{ scale: 1 }}
-                              className="absolute -top-2 -right-2 w-6 h-6 bg-yellow-400 rounded-full flex items-center justify-center"
-                            >
-                              <div className="w-2 h-2 bg-black rounded-full" />
-                            </motion.div>
-                          )}
+                          <div className="mt-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <ArrowRight className="w-6 h-6 text-yellow-400" />
+                          </div>
                         </div>
                       </div>
                     </motion.div>
@@ -345,43 +424,235 @@ export default function PracticePitch() {
               </div>
 
               <div className="text-center">
-                {!isPaid ? (
-                  <div className="mb-8">
-                    <h3 className="text-2xl font-black mb-4 text-yellow-400">COMPLETE PAYMENT TO START PRACTICE</h3>
-                    <PitchPracticePayment
-                      onPaymentSuccess={(paymentId) => {
-                        setIsPaid(true);
-                        setPaymentId(paymentId);
-                        console.log('Payment successful:', paymentId);
-                      }}
-                      onPaymentError={(error) => {
-                        console.error('Payment failed:', error);
-                      }}
-                    />
-                  </div>
-                ) : (
-                  <>
-                    <div className="mb-4 p-4 bg-green-400/10 border border-green-400/30 rounded-lg">
-                      <p className="text-sm text-green-300">
-                        ✅ Payment completed! You can now start your practice session.
+                Choose a practice mode to get started
+              </div>
+            </motion.div>
+          )}
+
+          {/* Option Details State */}
+          {uiState === 'option-details' && selectedOption && (
+            <motion.div
+              key="option-details"
+              initial={{ opacity: 0, x: 100 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -100 }}
+              className="max-w-4xl mx-auto"
+            >
+              {(() => {
+                const selectedMode = modes.find(mode => mode.id === selectedOption);
+                if (!selectedMode) return null;
+                
+                const Icon = selectedMode.icon;
+                
+                return (
+                  <div className="bg-gray-900 p-8 border-2 border-gray-700 shadow-2xl">
+                    <div className="flex items-center justify-between mb-6">
+                      <div className="flex items-center space-x-4">
+                        <div className="w-16 h-16 rounded-full bg-gray-800 flex items-center justify-center border-2 border-gray-600">
+                          <Icon className="w-8 h-8 text-white" />
+                        </div>
+                        <div>
+                          <h2 className="text-3xl font-black text-white">{selectedMode.name.toUpperCase()}</h2>
+                          <p className="text-gray-300">{selectedMode.description}</p>
+                        </div>
+                      </div>
+                      <Button
+                        variant="outline"
+                        className="border-2 border-gray-600 text-white hover:bg-gray-800 hover:border-gray-500"
+                        onClick={() => {
+                          setSelectedOption(null);
+                          setUIState('selection');
+                        }}
+                      >
+                        ← BACK
+                      </Button>
+                    </div>
+                    
+                    <div className="mb-8 p-6 bg-gray-800/50 rounded-lg border border-gray-700">
+                      <h3 className="text-xl font-bold text-white mb-3">What you'll get:</h3>
+                      <p className="text-gray-300 text-lg leading-relaxed">
+                        {selectedMode.detailedDescription}
                       </p>
                     </div>
-                    <Button
-                      size="lg"
-                      className="bg-yellow-400 hover:bg-yellow-500 text-black font-black text-xl px-12 py-6 border-4 border-black shadow-lg transform hover:scale-105 transition-all"
-                      onClick={() => {
-                        if (practiceMode === 'guided') {
-                          setUIState('ai-coach');
-                        } else {
-                          startRecording();
-                        }
-                      }}
-                    >
-                      START PRACTICE
-                      <ArrowRight className="w-6 h-6 ml-2" />
-                    </Button>
-                  </>
-                )}
+
+                    <div className="text-center">
+                       <div className="text-center">
+                         {!isPaid ? (
+                           <div className="space-y-6">
+                             {/* Free Practice Option */}
+                             <div className="space-y-4">
+                               <Button
+                                 size="lg"
+                                 className="bg-gray-600 hover:bg-gray-700 text-white font-black text-xl px-12 py-6 border-2 border-gray-500 shadow-lg transform hover:scale-105 transition-all w-full"
+                                 onClick={() => {
+                                   setPracticeMode(selectedOption);
+                                   if (selectedOption === 'guided') {
+                                     setUIState('realtime-ai-coach');
+                                   } else {
+                                     startRecording();
+                                   }
+                                 }}
+                               >
+                                 START FREE PRACTICE
+                                 <ArrowRight className="w-6 h-6 ml-2" />
+                               </Button>
+                               <p className="text-gray-400 text-sm">
+                                 Basic practice session - no AI feedback
+                               </p>
+                             </div>
+
+                             {/* Divider */}
+                             <div className="flex items-center space-x-4">
+                               <div className="flex-1 h-px bg-gray-600"></div>
+                               <span className="text-gray-400 text-sm">OR</span>
+                               <div className="flex-1 h-px bg-gray-600"></div>
+                             </div>
+
+                             {/* Paid Practice Option */}
+                             <div className="space-y-4">
+                               <Button
+                                 size="lg"
+                                 className="bg-yellow-400 hover:bg-yellow-500 text-black font-black text-xl px-12 py-6 border-4 border-black shadow-lg transform hover:scale-105 transition-all w-full"
+                                 onClick={() => {
+                                   setPracticeMode(selectedOption);
+                                   handleDirectBasePay();
+                                 }}
+                                 disabled={isPaymentProcessing}
+                               >
+                                 {isPaymentProcessing ? 'Processing Payment...' : `START PREMIUM ${selectedMode.name.toUpperCase()}`}
+                                 {!isPaymentProcessing && <ArrowRight className="w-6 h-6 ml-2" />}
+                               </Button>
+                               <p className="text-white/80 text-sm">
+                                 Premium practice with AI feedback & analysis (0.001 ETH)
+                               </p>
+                             </div>
+                           </div>
+                         ) : (
+                           <div className="space-y-4">
+                             <div className="p-4 bg-green-400/20 border border-green-400/50 rounded-lg">
+                               <p className="text-green-200">
+                                 ✅ Payment completed! Ready to start your premium practice session.
+                               </p>
+                             </div>
+                             <Button
+                               size="lg"
+                               className="bg-yellow-400 hover:bg-yellow-500 text-black font-black text-xl px-12 py-6 border-4 border-black shadow-lg transform hover:scale-105 transition-all"
+                               onClick={() => {
+                                 setPracticeMode(selectedOption);
+                                 if (selectedOption === 'guided') {
+                                   setUIState('ai-coach');
+                                 } else {
+                                   startRecording();
+                                 }
+                               }}
+                             >
+                               START PREMIUM {selectedMode.name.toUpperCase()}
+                               <ArrowRight className="w-6 h-6 ml-2" />
+                             </Button>
+                           </div>
+                         )}
+                       </div>
+                    </div>
+                  </div>
+                );
+              })()}
+            </motion.div>
+          )}
+
+          {/* Payment State */}
+          {uiState === 'payment' && selectedOption && (
+            <motion.div
+              key="payment"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="max-w-2xl mx-auto"
+            >
+              {(() => {
+                const selectedMode = modes.find(mode => mode.id === selectedOption);
+                if (!selectedMode) return null;
+                
+                const Icon = selectedMode.icon;
+                
+                return (
+                  <div className="bg-gray-900/95 border-4 border-yellow-400 p-8 shadow-2xl backdrop-blur-sm">
+                    <div className="text-center mb-6">
+                      <div className="w-16 h-16 mx-auto rounded-full bg-yellow-400/20 flex items-center justify-center border-2 border-yellow-400 mb-4">
+                        <Icon className="w-8 h-8 text-yellow-400" />
+                      </div>
+                      <h2 className="text-3xl font-black text-white mb-2">
+                        {selectedMode.name.toUpperCase()}
+                      </h2>
+                      <p className="text-gray-300">
+                        Complete payment to start your practice session
+                      </p>
+                    </div>
+
+                    <div className="mb-6">
+                      <PitchPracticePayment
+                        onPaymentSuccess={(paymentId) => {
+                          setIsPaid(true);
+                          setPaymentId(paymentId);
+                          console.log('Payment successful:', paymentId);
+                          // Automatically start the practice after payment
+                          if (selectedOption === 'guided') {
+                            setUIState('realtime-ai-coach');
+                          } else {
+                            startRecording();
+                          }
+                        }}
+                        onPaymentError={(error) => {
+                          console.error('Payment failed:', error);
+                        }}
+                      />
+                    </div>
+
+                    <div className="text-center">
+                      <Button
+                        variant="outline"
+                        className="border-2 border-gray-400 text-white hover:bg-gray-800"
+                        onClick={() => {
+                          setUIState('option-details');
+                        }}
+                      >
+                        ← BACK TO DETAILS
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })()}
+            </motion.div>
+          )}
+
+          {/* Realtime AI Coach State */}
+          {uiState === 'realtime-ai-coach' && (
+            <motion.div
+              key="realtime-ai-coach"
+              initial={{ opacity: 0, x: 100 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -100 }}
+              className="max-w-4xl mx-auto"
+            >
+              <div className="bg-gray-900 border-2 border-gray-700 p-8 shadow-2xl">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-3xl font-black text-white">REAL-TIME AI COACH</h2>
+                  <Button
+                    variant="outline"
+                    className="border-2 border-gray-600 text-white hover:bg-gray-800 hover:border-gray-500"
+                    onClick={resetPractice}
+                  >
+                    <RotateCcw className="w-4 h-4 mr-2" />
+                    RESET
+                  </Button>
+                </div>
+                
+                <RealtimeAICoach 
+                  onSessionEnd={(transcript, messages) => {
+                    setCurrentTranscript(transcript);
+                    setMessages(messages);
+                    setUIState('feedback');
+                  }}
+                />
               </div>
             </motion.div>
           )}
@@ -395,12 +666,12 @@ export default function PracticePitch() {
               exit={{ opacity: 0, x: -100 }}
               className="max-w-4xl mx-auto"
             >
-              <div className="bg-gradient-to-br from-purple-900/50 to-black border-4 border-purple-500 p-8 shadow-2xl">
+              <div className="bg-gray-900 border-2 border-gray-700 p-8 shadow-2xl">
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-3xl font-black text-white">AI COACH ACTIVE</h2>
                   <Button
                     variant="outline"
-                    className="border-2 border-gray-400 text-white hover:bg-gray-800"
+                    className="border-2 border-gray-600 text-white hover:bg-gray-800 hover:border-gray-500"
                     onClick={resetPractice}
                   >
                     <RotateCcw className="w-4 h-4 mr-2" />
@@ -409,7 +680,8 @@ export default function PracticePitch() {
                 </div>
                 
                 <VoiceAgent 
-                  promptId="pm_6743e5b5e4b0b8b8b8b8b8b8"
+                  promptId="pmpt_68fb2d1827708193ab1bc2be4879229f0799b5c98bd97416"
+                  transcriptContext={currentTranscript}
                   onTranscript={(transcript) => {
                     setCurrentTranscript(transcript);
                     const userMessage: Message = {
@@ -445,7 +717,7 @@ export default function PracticePitch() {
               exit={{ opacity: 0, scale: 0.9 }}
               className="max-w-4xl mx-auto text-center"
             >
-              <div className="bg-gradient-to-br from-red-900/50 to-black border-4 border-red-500 p-12 shadow-2xl">
+              <div className="bg-gray-900 border-2 border-gray-700 p-12 shadow-2xl">
                 <div className="mb-8">
                   <Badge className="bg-red-500 text-white text-lg px-6 py-2 font-black animate-pulse">
                     ● RECORDING - {formatTime(duration)}
@@ -500,44 +772,71 @@ export default function PracticePitch() {
             >
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Transcript */}
-                <div className="bg-gradient-to-br from-gray-900 to-black border-4 border-gray-600 p-6 shadow-xl">
-                  <h3 className="text-2xl font-black text-white mb-4 border-b-2 border-gray-600 pb-2">
+                <div className="bg-gray-900 border-2 border-gray-700 p-6 shadow-xl">
+                  <h3 className="text-2xl font-black text-white mb-4 border-b border-gray-700 pb-2">
                     TRANSCRIPT
                   </h3>
                   <p className="text-gray-300 leading-relaxed">{currentTranscript}</p>
                 </div>
 
-                {/* AI Feedback */}
+                {/* AI Feedback or Free Practice Message */}
                 <div className="space-y-4">
-                  {feedback.map((item, index) => (
+                  {isPaid ? (
+                    // Show AI feedback for paid sessions
+                    feedback.map((item, index) => (
+                      <motion.div
+                        key={index}
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: index * 0.2 }}
+                        className="bg-gray-900 border-2 border-gray-700 p-6 shadow-xl"
+                      >
+                        <div className="flex items-start space-x-4">
+                          {item.type === 'strength' && <TrendingUp className="w-8 h-8 text-green-400 mt-1 flex-shrink-0" />}
+                          {item.type === 'improvement' && <Target className="w-8 h-8 text-yellow-400 mt-1 flex-shrink-0" />}
+                          {item.type === 'tip' && <Zap className="w-8 h-8 text-blue-400 mt-1 flex-shrink-0" />}
+                          <div>
+                            <h4 className="text-lg font-black text-white mb-2">
+                              {item.type.toUpperCase()}
+                            </h4>
+                            <p className="text-gray-300">{item.content}</p>
+                          </div>
+                        </div>
+                      </motion.div>
+                    ))
+                  ) : (
+                    // Show upgrade message for free sessions
                     <motion.div
-                      key={index}
                       initial={{ opacity: 0, x: 20 }}
                       animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: index * 0.2 }}
-                      className={`
-                        p-6 border-4 shadow-xl
-                        ${item.type === 'strength' 
-                          ? 'bg-gradient-to-br from-green-900/50 to-black border-green-500' 
-                          : item.type === 'improvement'
-                            ? 'bg-gradient-to-br from-yellow-900/50 to-black border-yellow-500'
-                            : 'bg-gradient-to-br from-blue-900/50 to-black border-blue-500'
-                        }
-                      `}
+                      className="bg-gray-900 border-2 border-gray-700 p-6 shadow-xl"
                     >
                       <div className="flex items-start space-x-4">
-                        {item.type === 'strength' && <TrendingUp className="w-8 h-8 text-green-400 mt-1 flex-shrink-0" />}
-                        {item.type === 'improvement' && <Target className="w-8 h-8 text-yellow-400 mt-1 flex-shrink-0" />}
-                        {item.type === 'tip' && <Zap className="w-8 h-8 text-blue-400 mt-1 flex-shrink-0" />}
+                        <Shield className="w-8 h-8 text-yellow-400 mt-1 flex-shrink-0" />
                         <div>
                           <h4 className="text-lg font-black text-white mb-2">
-                            {item.type.toUpperCase()}
+                            FREE PRACTICE COMPLETE
                           </h4>
-                          <p className="text-gray-300">{item.content}</p>
+                          <p className="text-gray-300 mb-4">
+                            Great job practicing! Your speech has been transcribed above.
+                          </p>
+                          <p className="text-gray-400 text-sm">
+                            💡 Upgrade to Premium Practice to get AI-powered feedback, suggestions, and detailed analysis of your pitch.
+                          </p>
+                          <Button
+                            size="sm"
+                            className="bg-yellow-400 hover:bg-yellow-500 text-black font-bold mt-4"
+                            onClick={() => {
+                              setUIState('option-details');
+                              setIsPaid(false);
+                            }}
+                          >
+                            Upgrade to Premium
+                          </Button>
                         </div>
                       </div>
                     </motion.div>
-                  ))}
+                  )}
                 </div>
               </div>
 
@@ -554,7 +853,10 @@ export default function PracticePitch() {
                   <Button
                     size="lg"
                     className="bg-green-600 hover:bg-green-700 text-white font-black text-xl px-8 py-4 border-4 border-green-800"
-                    onClick={() => setUIState('ai-coach')}
+                    onClick={() => {
+                      // Pass the transcript context to the AI coach for enhanced feedback
+                      setUIState('ai-coach');
+                    }}
                   >
                     ANSWER QUESTIONS
                   </Button>

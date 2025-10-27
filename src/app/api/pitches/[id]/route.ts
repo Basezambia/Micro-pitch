@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { supabase } from '@/lib/db';
 
 export async function GET(
   request: NextRequest,
@@ -12,79 +12,29 @@ export async function GET(
       return NextResponse.json({ error: 'Pitch ID is required' }, { status: 400 });
     }
 
-    const pitch = await db.pitch.findUnique({
-      where: { 
-        id: pitchId,
-        status: 'ACTIVE'
-      },
-      select: {
-        id: true,
-        title: true,
-        description: true,
-        category: true,
-        tags: true,
-        deckUrl: true,
-        oneLiner: true,
-        targetAmount: true,
-        equityOffered: true,
-        valuation: true,
-        traction: true,
-        teamSize: true,
-        stage: true,
-        isPublic: true,
-        status: true,
-        analysisScore: true,
-        analysisData: true,
-        aiImproved: true,
-        createdAt: true,
-        updatedAt: true,
-        founder: {
-          select: { 
-            name: true, 
-            walletAddress: true, 
-            isVerified: true,
-            bio: true,
-            profileImage: true
-          }
-        },
-        sessions: {
-          select: {
-            id: true,
-            startTime: true,
-            status: true,
-            investor: {
-              select: {
-                name: true,
-                walletAddress: true
-              }
-            }
-          },
-          orderBy: { startTime: 'desc' }
-        },
-        investments: {
-          select: {
-            id: true,
-            amount: true,
-            createdAt: true,
-            investor: {
-              select: {
-                name: true,
-                walletAddress: true
-              }
-            }
-          },
-          orderBy: { createdAt: 'desc' }
-        },
-        _count: {
-          select: { 
-            sessions: true, 
-            investments: true
-          }
-        }
-      }
-    });
+    const { data: pitch, error } = await supabase
+      .from('pitches')
+      .select(`
+        *,
+        founder:users!founder_id(name, wallet_address, is_verified, bio, profile_image),
+        sessions:pitch_sessions(
+          id,
+          start_time,
+          status,
+          investor:users!investor_id(name, wallet_address)
+        ),
+        investments(
+          id,
+          amount,
+          created_at,
+          investor:users!investor_id(name, wallet_address)
+        )
+      `)
+      .eq('id', pitchId)
+      .eq('status', 'ACTIVE')
+      .single();
 
-    if (!pitch) {
+    if (error || !pitch) {
       return NextResponse.json({ error: 'Pitch not found' }, { status: 404 });
     }
 
@@ -92,10 +42,10 @@ export async function GET(
     const formattedPitch = {
       ...pitch,
       tags: JSON.parse(pitch.tags || '[]'),
-      analysisData: pitch.analysisData ? JSON.parse(pitch.analysisData) : null,
-      totalInvestment: pitch.investments.reduce((sum, inv) => sum + inv.amount, 0),
-      fundingProgress: (pitch.targetAmount && pitch.targetAmount > 0) 
-        ? (pitch.investments.reduce((sum, inv) => sum + inv.amount, 0) / pitch.targetAmount) * 100 
+      analysisData: pitch.analysis_data ? JSON.parse(pitch.analysis_data) : null,
+      totalInvestment: pitch.investments?.reduce((sum, inv) => sum + inv.amount, 0) || 0,
+      fundingProgress: (pitch.target_amount && pitch.target_amount > 0) 
+        ? ((pitch.investments?.reduce((sum, inv) => sum + inv.amount, 0) || 0) / pitch.target_amount) * 100 
         : 0
     };
 
@@ -123,58 +73,38 @@ export async function PATCH(
     }
 
     // Only allow certain fields to be updated
-    const allowedUpdates = {
-      title: updates.title,
-      description: updates.description,
-      oneLiner: updates.oneLiner,
-      traction: updates.traction,
-      targetAmount: updates.targetAmount,
-      equityOffered: updates.equityOffered,
-      valuation: updates.valuation,
-      status: updates.status
-    };
+    const allowedUpdates: any = {};
+    
+    if (updates.title !== undefined) allowedUpdates.title = updates.title;
+    if (updates.description !== undefined) allowedUpdates.description = updates.description;
+    if (updates.oneLiner !== undefined) allowedUpdates.one_liner = updates.oneLiner;
+    if (updates.traction !== undefined) allowedUpdates.traction = updates.traction;
+    if (updates.targetAmount !== undefined) allowedUpdates.target_amount = updates.targetAmount;
+    if (updates.equityOffered !== undefined) allowedUpdates.equity_offered = updates.equityOffered;
+    if (updates.valuation !== undefined) allowedUpdates.valuation = updates.valuation;
+    if (updates.status !== undefined) allowedUpdates.status = updates.status;
 
-    // Remove undefined values
-    Object.keys(allowedUpdates).forEach(key => 
-      allowedUpdates[key] === undefined && delete allowedUpdates[key]
-    );
+    const { data: updatedPitch, error } = await supabase
+      .from('pitches')
+      .update(allowedUpdates)
+      .eq('id', pitchId)
+      .select(`
+        *,
+        founder:users!founder_id(name, wallet_address, is_verified)
+      `)
+      .single();
 
-    const updatedPitch = await db.pitch.update({
-      where: { id: pitchId },
-      data: allowedUpdates,
-      select: {
-        id: true,
-        title: true,
-        description: true,
-        category: true,
-        tags: true,
-        deckUrl: true,
-        oneLiner: true,
-        targetAmount: true,
-        equityOffered: true,
-        valuation: true,
-        traction: true,
-        teamSize: true,
-        stage: true,
-        isPublic: true,
-        status: true,
-        analysisScore: true,
-        analysisData: true,
-        aiImproved: true,
-        createdAt: true,
-        updatedAt: true,
-        founder: {
-          select: { name: true, walletAddress: true, isVerified: true }
-        }
-      }
-    });
+    if (error) {
+      console.error('Supabase error:', error);
+      return NextResponse.json({ error: 'Failed to update pitch' }, { status: 500 });
+    }
 
     return NextResponse.json({ 
       success: true,
       pitch: {
         ...updatedPitch,
         tags: JSON.parse(updatedPitch.tags || '[]'),
-        analysisData: updatedPitch.analysisData ? JSON.parse(updatedPitch.analysisData) : null
+        analysisData: updatedPitch.analysis_data ? JSON.parse(updatedPitch.analysis_data) : null
       }
     });
 

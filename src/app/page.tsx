@@ -20,10 +20,74 @@ import {
   DollarSign,
   Plus
 } from "lucide-react";
+import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
+import { useEvmAddress } from "@coinbase/cdp-hooks";
 
 export default function Home() {
   const { isSignedIn } = useIsSignedIn();
   const { user } = useCurrentUser();
+  const { evmAddress } = useEvmAddress();
+  const [isUpdatingRole, setIsUpdatingRole] = useState(false);
+  const { toast } = useToast();
+
+  // Debug information (remove in production)
+  console.log('Auth Debug:', { isSignedIn, user, userRole: user?.role });
+
+  const handleRoleSelection = async (role: 'INVESTOR' | 'FOUNDER') => {
+    if (!evmAddress) {
+      toast({
+        title: 'Error',
+        description: 'Wallet address not found',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsUpdatingRole(true);
+    try {
+      // Save role to database via API
+      const response = await fetch('/api/auth', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          walletAddress: evmAddress,
+          email: 'user@example.com',
+          name: 'User Name',
+          role: role
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save user role');
+      }
+
+      const { user: updatedDbUser } = await response.json();
+      
+      toast({
+        title: 'Role Selected',
+        description: `Welcome to MicroPitch as ${role === 'FOUNDER' ? 'a Founder' : 'an Investor'}!`,
+      });
+
+      // Redirect to appropriate dashboard
+      if (role === 'FOUNDER') {
+        window.location.href = '/dashboard';
+      } else {
+        window.location.href = '/investors';
+      }
+    } catch (error) {
+      console.error('Failed to save user role:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to save your role selection',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsUpdatingRole(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-black text-white relative overflow-hidden">
@@ -35,7 +99,7 @@ export default function Home() {
         <div className="absolute bottom-1/4 left-0 w-64 h-64 bg-blue-400/10 transform -rotate-45 -translate-x-32" />
       </div>
 
-      <div className="relative z-10 flex flex-col min-h-screen">
+      <div className="relative flex flex-col min-h-screen">
         {/* Brutalist Navigation */}
         <nav className="p-8 border-b-4 border-gray-800">
           <div className="max-w-6xl mx-auto flex justify-between items-center">
@@ -46,29 +110,7 @@ export default function Home() {
               {isSignedIn && (
                 <>
                   {/* Role-specific navigation options */}
-                  {(user?.role === 'FOUNDER' || user?.role === 'BOTH') && (
-                    <>
-                      <Link href="/create">
-                        <Button 
-                          variant="ghost" 
-                          className="text-white hover:text-blue-400 font-black text-lg border-2 border-transparent hover:border-blue-400 px-6 py-3"
-                        >
-                          <Plus className="w-5 h-5 mr-2" />
-                          CREATE PITCH
-                        </Button>
-                      </Link>
-                      <Link href="/practice">
-                        <Button 
-                          variant="ghost" 
-                          className="text-white hover:text-purple-400 font-black text-lg border-2 border-transparent hover:border-purple-400 px-6 py-3"
-                        >
-                          <Mic className="w-5 h-5 mr-2" />
-                          PRACTICE
-                        </Button>
-                      </Link>
-                    </>
-                  )}
-                  {(user?.role === 'INVESTOR' || user?.role === 'BOTH') && (
+                  {user?.role === 'INVESTOR' && (
                     <>
                       <Link href="/investors">
                         <Button 
@@ -90,16 +132,6 @@ export default function Home() {
                       </Link>
                     </>
                   )}
-                  {/* Dashboard link for all signed-in users */}
-                  <Link href="/dashboard">
-                    <Button 
-                      variant="ghost" 
-                      className="text-white hover:text-orange-400 font-black text-lg border-2 border-transparent hover:border-orange-400 px-6 py-3"
-                    >
-                      <BarChart3 className="w-5 h-5 mr-2" />
-                      DASHBOARD
-                    </Button>
-                  </Link>
                 </>
               )}
               <div className="border-l-4 border-gray-600 pl-6">
@@ -129,8 +161,45 @@ export default function Home() {
 
                 {/* Role-specific action buttons */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-                  {/* Show investor options for investors or users with both roles */}
-                  {(user?.role === 'INVESTOR' || user?.role === 'BOTH') && (
+                  {/* Show role selection for users without a role */}
+                  {!user?.role && (
+                    <>
+                      <motion.div
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => handleRoleSelection('INVESTOR')}
+                        className="bg-gradient-to-r from-green-600 to-green-800 p-8 border-4 border-green-400 cursor-pointer group"
+                      >
+                        <div className="flex items-center gap-4">
+                          <DollarSign className="w-12 h-12 text-white" />
+                          <div className="text-left">
+                            <h3 className="text-3xl font-black text-white mb-2">INVESTOR</h3>
+                            <p className="text-green-100 font-medium">Find and fund promising startups</p>
+                          </div>
+                          <ArrowRight className="w-8 h-8 text-white group-hover:translate-x-2 transition-transform duration-300" />
+                        </div>
+                      </motion.div>
+
+                      <motion.div
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => handleRoleSelection('FOUNDER')}
+                        className="bg-gradient-to-r from-yellow-600 to-yellow-800 p-8 border-4 border-yellow-400 cursor-pointer group"
+                      >
+                        <div className="flex items-center gap-4">
+                          <Zap className="w-12 h-12 text-white" />
+                          <div className="text-left">
+                            <h3 className="text-3xl font-black text-white mb-2">FOUNDER</h3>
+                            <p className="text-yellow-100 font-medium">Pitch your startup to investors</p>
+                          </div>
+                          <ArrowRight className="w-8 h-8 text-white group-hover:translate-x-2 transition-transform duration-300" />
+                        </div>
+                      </motion.div>
+                    </>
+                  )}
+
+                  {/* Show investor options for investors */}
+              {user?.role === 'INVESTOR' && (
                     <>
                       <Link href="/investors">
                         <motion.div
@@ -168,8 +237,8 @@ export default function Home() {
                     </>
                   )}
 
-                  {/* Show founder options for founders or users with both roles */}
-                  {(user?.role === 'FOUNDER' || user?.role === 'BOTH') && (
+                  {/* Show founder options for founders */}
+              {user?.role === 'FOUNDER' && (
                     <>
                       <Link href="/create">
                         <motion.div
@@ -197,7 +266,7 @@ export default function Home() {
                           <div className="flex items-center gap-4">
                             <BarChart3 className="w-12 h-12 text-white" />
                             <div className="text-left">
-                              <h3 className="text-3xl font-black text-white mb-2">VIEW DASHBOARD</h3>
+                              <h3 className="text-3xl font-black text-white mb-2">DASHBOARD</h3>
                               <p className="text-blue-100 font-medium">Manage your pitches</p>
                             </div>
                             <ArrowRight className="w-8 h-8 text-white group-hover:translate-x-2 transition-transform duration-300" />
@@ -349,28 +418,6 @@ export default function Home() {
                         >
                           CREATE PITCH
                           <Brain className="w-6 h-6 ml-2" />
-                        </Button>
-                      </Link>
-                    </>
-                  ) : user?.role === 'BOTH' ? (
-                    // Both roles - show all options
-                    <>
-                      <Link href="/create">
-                        <Button 
-                          size="lg" 
-                          className="bg-yellow-400 hover:bg-yellow-500 text-black font-black text-2xl px-12 py-6 border-4 border-black shadow-lg transform hover:scale-105 transition-all"
-                        >
-                          CREATE PITCH
-                          <Brain className="w-6 h-6 ml-2" />
-                        </Button>
-                      </Link>
-                      <Link href="/investors">
-                        <Button 
-                          size="lg" 
-                          className="bg-green-400 hover:bg-green-500 text-black font-black text-2xl px-12 py-6 border-4 border-black shadow-lg transform hover:scale-105 transition-all"
-                        >
-                          BROWSE PITCHES
-                          <Search className="w-6 h-6 ml-2" />
                         </Button>
                       </Link>
                     </>

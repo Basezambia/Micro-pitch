@@ -8,7 +8,7 @@ import { Building2, TrendingUp, Users, DollarSign, Lightbulb, Target } from 'luc
 import { useToast } from '@/hooks/use-toast';
 
 interface RoleSelectionProps {
-  onRoleSelected: (role: 'FOUNDER' | 'INVESTOR' | 'BOTH') => void;
+  onRoleSelected: (role: 'FOUNDER' | 'INVESTOR') => void;
   userEmail?: string;
   userName?: string;
 }
@@ -18,11 +18,11 @@ export const RoleSelection: React.FC<RoleSelectionProps> = ({
   userEmail,
   userName
 }) => {
-  const [selectedRole, setSelectedRole] = useState<'FOUNDER' | 'INVESTOR' | 'BOTH' | null>(null);
+  const [selectedRole, setSelectedRole] = useState<'FOUNDER' | 'INVESTOR' | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
-  const handleRoleSelection = async (role: 'FOUNDER' | 'INVESTOR' | 'BOTH') => {
+  const handleRoleSelection = async (role: 'FOUNDER' | 'INVESTOR') => {
     setSelectedRole(role);
     setIsSubmitting(true);
 
@@ -149,50 +149,6 @@ export const RoleSelection: React.FC<RoleSelectionProps> = ({
               </div>
               <Badge variant="secondary" className="w-full justify-center">
                 0.1 USDC per founder chat session
-              </Badge>
-            </CardContent>
-          </Card>
-
-          {/* Both Card */}
-          <Card 
-            className={`cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-105 md:col-span-2 lg:col-span-1 ${
-              selectedRole === 'BOTH' ? 'ring-2 ring-purple-500 bg-purple-50' : ''
-            }`}
-            onClick={() => !isSubmitting && handleRoleSelection('BOTH')}
-          >
-            <CardHeader className="text-center">
-              <div className="mx-auto mb-4 p-3 bg-purple-100 rounded-full w-fit">
-                <Building2 className="h-8 w-8 text-purple-600" />
-              </div>
-              <CardTitle className="text-2xl">I'm Both</CardTitle>
-              <CardDescription className="text-base">
-                I'm a founder who also invests in other startups
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <h4 className="font-semibold text-gray-900">What you can do:</h4>
-                <ul className="space-y-1 text-sm text-gray-600">
-                  <li className="flex items-center gap-2">
-                    <Target className="h-4 w-4 text-purple-500" />
-                    All founder features
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <DollarSign className="h-4 w-4 text-purple-500" />
-                    All investor features
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <Users className="h-4 w-4 text-purple-500" />
-                    Switch between roles seamlessly
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <TrendingUp className="h-4 w-4 text-purple-500" />
-                    Comprehensive dashboard
-                  </li>
-                </ul>
-              </div>
-              <Badge variant="secondary" className="w-full justify-center">
-                Access to all platform features
               </Badge>
             </CardContent>
           </Card>

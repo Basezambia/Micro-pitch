@@ -8,11 +8,12 @@ import { Mic, MicOff, Phone, PhoneOff, Loader2, AlertCircle } from 'lucide-react
 interface VoiceAgentProps {
   className?: string;
   promptId?: string;
+  transcriptContext?: string;
   onTranscript?: (transcript: string) => void;
   onAIResponse?: (response: string) => void;
 }
 
-export default function VoiceAgent({ className, promptId, onTranscript, onAIResponse }: VoiceAgentProps) {
+export default function VoiceAgent({ className, promptId, transcriptContext, onTranscript, onAIResponse }: VoiceAgentProps) {
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
@@ -52,9 +53,35 @@ export default function VoiceAgent({ className, promptId, onTranscript, onAIResp
       // Initialize RealtimeAgent with correct configuration
       const agent = new RealtimeAgent({
         name: 'pitch-coach',
-        instructions: `You are an AI pitch coach. Help users practice and improve their startup pitches. 
-        Provide constructive feedback, ask clarifying questions, and help them refine their message. 
-        Be encouraging but honest about areas for improvement.`,
+        instructions: promptId ? `Use prompt ID: ${promptId}` : `You are an expert AI pitch coach specializing in startup presentations. Your role is to provide detailed, actionable feedback on pitch delivery, pronunciation, tone, and overall presentation quality.
+
+${transcriptContext ? `CONTEXT: The user just completed a pitch practice session. Here is their transcript: "${transcriptContext}"
+
+Based on this transcript, provide comprehensive feedback on:` : 'When the user speaks, analyze and provide feedback on:'}
+
+1. PRONUNCIATION & ARTICULATION:
+   - Identify any words that may have been mispronounced or unclear
+   - Suggest proper pronunciation with phonetic guidance
+   - Point out articulation issues and provide exercises
+
+2. TONE & DELIVERY:
+   - Assess confidence level and energy
+   - Evaluate pace and rhythm
+   - Suggest improvements for vocal variety and emphasis
+
+3. CONTENT STRUCTURE:
+   - Analyze the logical flow of ideas
+   - Identify missing key elements (problem, solution, market, etc.)
+   - Suggest improvements for clarity and impact
+
+4. SPECIFIC WORD COACHING:
+   - Break down challenging technical terms
+   - Provide alternative phrasing for better audience understanding
+   - Suggest power words to enhance persuasion
+
+${transcriptContext ? `Start by immediately providing detailed feedback on their practice session, then engage in interactive coaching to help them improve specific areas.` : 'Be proactive in offering specific, actionable advice. Ask clarifying questions to better understand their pitch and provide targeted coaching.'}
+
+Always be encouraging while providing honest, constructive feedback. Focus on practical improvements they can implement immediately.`,
         voice: 'alloy'
       });
       
@@ -111,6 +138,23 @@ export default function VoiceAgent({ className, promptId, onTranscript, onAIResp
         model: 'gpt-4o-realtime-preview-2024-10-01',
         apiKey: client_secret
       });
+
+      // If we have transcript context, automatically start the coaching session
+      if (transcriptContext && transcriptContext.trim()) {
+        // Wait a moment for the connection to stabilize, then provide the context
+        setTimeout(() => {
+          if (sessionRef.current && isConnected) {
+            // The RealtimeSession will automatically handle the transcript context
+            // through the agent's system prompt and conversation flow
+            console.log('Starting coaching session with transcript context');
+            
+            // Set the AI response with the transcript context for immediate feedback
+            const contextualResponse = `I've received your pitch practice session. Let me provide detailed feedback on your delivery: "${transcriptContext}". I'll analyze your pronunciation, tone, and overall presentation effectiveness.`;
+            setAiResponse(contextualResponse);
+            onAIResponse?.(contextualResponse);
+          }
+        }, 1000);
+      }
       
     } catch (error) {
       console.error('Failed to connect to voice agent:', error);

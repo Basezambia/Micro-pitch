@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { supabase } from '@/lib/db';
 
 export async function POST(request: NextRequest) {
   try {
@@ -10,15 +10,17 @@ export async function POST(request: NextRequest) {
     }
 
     // Get session details
-    const session = await db.pitchSession.findUnique({
-      where: { id: sessionId },
-      include: {
-        pitch: true,
-        investor: true
-      }
-    });
+    const { data: session, error: sessionError } = await supabase
+      .from('pitch_sessions')
+      .select(`
+        *,
+        pitch:pitches(*),
+        investor:users!investor_id(*)
+      `)
+      .eq('id', sessionId)
+      .single();
 
-    if (!session) {
+    if (sessionError || !session) {
       return NextResponse.json({ error: 'Session not found' }, { status: 404 });
     }
 
@@ -28,21 +30,28 @@ export async function POST(request: NextRequest) {
     const simulatedTxHash = `0x${Math.random().toString(16).substr(2, 64)}`;
 
     // Update session with payment info
-    const updatedSession = await db.pitchSession.update({
-      where: { id: sessionId },
-      data: {
-        totalCost: amount,
-        paymentTxId: simulatedTxHash,
+    const { data: updatedSession, error: updateError } = await supabase
+      .from('pitch_sessions')
+      .update({
+        total_cost: amount,
+        payment_tx_id: simulatedTxHash,
         status: 'COMPLETED',
-        endTime: new Date()
-      }
-    });
+        end_time: new Date().toISOString()
+      })
+      .eq('id', sessionId)
+      .select()
+      .single();
+
+    if (updateError) {
+      console.error('Supabase error:', updateError);
+      return NextResponse.json({ error: 'Failed to update session' }, { status: 500 });
+    }
 
     // Create NFT certificate for completed session
     const nftMetadata = {
       name: `Pitch Certificate: ${session.pitch.title}`,
       description: `Certificate of completion for pitch session with ${session.investor.name || 'Investor'}`,
-      image: session.pitchId, // This would be the IPFS hash of the generated certificate image
+      image: session.pitch_id, // This would be the IPFS hash of the generated certificate image
       attributes: [
         {
           trait_type: "Duration",
@@ -54,7 +63,7 @@ export async function POST(request: NextRequest) {
         },
         {
           trait_type: "Session Date",
-          value: session.createdAt.toISOString().split('T')[0]
+          value: new Date(session.created_at).toISOString().split('T')[0]
         },
         {
           trait_type: "Investor",
@@ -81,18 +90,22 @@ export async function POST(request: NextRequest) {
 
     if (ipfsResult.success) {
       // Create NFT record
-      await db.nFT.create({
-        data: {
+      const { error: nftError } = await supabase
+        .from('nfts')
+        .insert({
           name: nftMetadata.name,
           description: nftMetadata.description,
-          imageUrl: `https://gateway.pinata.cloud/ipfs/${ipfsResult.ipfsHash}`,
+          image_url: `https://gateway.pinata.cloud/ipfs/${ipfsResult.ipfsHash}`,
           metadata: ipfsResult.ipfsUrl,
-          ownerId: session.pitch.founderId,
-          pitchId: session.pitchId,
-          sessionId: session.id,
-          mintedAt: new Date()
-        }
-      });
+          owner_id: session.pitch.founder_id,
+          pitch_id: session.pitch_id,
+          session_id: session.id,
+          minted_at: new Date().toISOString()
+        });
+
+      if (nftError) {
+        console.error('NFT creation error:', nftError);
+      }
     }
 
     return NextResponse.json({
@@ -119,21 +132,23 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Session ID is required' }, { status: 400 });
     }
 
-    const session = await db.pitchSession.findUnique({
-      where: { id: sessionId },
-      include: {
-        pitch: true,
-        investor: true
-      }
-    });
+    const { data: session, error } = await supabase
+      .from('pitch_sessions')
+      .select(`
+        *,
+        pitch:pitches(*),
+        investor:users!investor_id(*)
+      `)
+      .eq('id', sessionId)
+      .single();
 
-    if (!session) {
+    if (error || !session) {
       return NextResponse.json({ error: 'Session not found' }, { status: 404 });
     }
 
     return NextResponse.json({ 
       session,
-      paymentStatus: session.paymentTxId ? 'completed' : 'pending'
+      paymentStatus: session.payment_tx_id ? 'completed' : 'pending'
     });
 
   } catch (error) {

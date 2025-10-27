@@ -348,7 +348,7 @@ export default function CreatePitch() {
             <Card className="bg-gray-900/50 border-gray-800 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="flex items-center">
-                  <Target className="w-6 h-6 mr-2 text-blue-400" />
+                  <Target className="w-6 h-6 mr-2 text-yellow-400" />
                   Business Details
                 </CardTitle>
               </CardHeader>
@@ -489,17 +489,17 @@ export default function CreatePitch() {
                 </div>
 
                 <div>
-                  <h3 className="text-lg font-semibold mb-3 text-blue-400">One-Liner</h3>
+                  <h3 className="text-lg font-semibold mb-3 text-yellow-400">One-Liner</h3>
                   <p className="text-sm text-gray-300">{formData.oneLiner}</p>
                 </div>
 
                 <div>
-                  <h3 className="text-lg font-semibold mb-3 text-purple-400">Description</h3>
+                  <h3 className="text-lg font-semibold mb-3 text-white">Description</h3>
                   <p className="text-sm text-gray-300">{formData.description}</p>
                 </div>
 
                 <div>
-                  <h3 className="text-lg font-semibold mb-3 text-orange-400">Tags</h3>
+                  <h3 className="text-lg font-semibold mb-3 text-yellow-400">Tags</h3>
                   <div className="flex flex-wrap gap-2">
                     {formData.tags.map(tag => (
                       <Badge key={tag} className="bg-yellow-400/20 text-yellow-400 border-yellow-400/30">
@@ -514,29 +514,6 @@ export default function CreatePitch() {
                     ✅ Your pitch is ready for AI analysis! Our AI will review, score, and potentially improve your pitch to meet VC standards.
                   </p>
                 </div>
-
-                {/* Payment Section */}
-                <div className="border-t border-gray-700 pt-6">
-                  <h3 className="text-lg font-semibold mb-4 text-yellow-400">Complete Payment to Create Pitch</h3>
-                  {!isPaid ? (
-                    <PitchCreationPayment
-                      onPaymentSuccess={(paymentId) => {
-                        setIsPaid(true);
-                        setPaymentId(paymentId);
-                        console.log('Payment successful:', paymentId);
-                      }}
-                      onPaymentError={(error) => {
-                        console.error('Payment failed:', error);
-                      }}
-                    />
-                  ) : (
-                    <div className="p-4 bg-green-400/10 border border-green-400/30 rounded-lg">
-                      <p className="text-sm text-green-300">
-                        ✅ Payment completed! You can now proceed with pitch creation.
-                      </p>
-                    </div>
-                  )}
-                </div>
               </CardContent>
             </Card>
           )}
@@ -550,7 +527,30 @@ export default function CreatePitch() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
-                {isAnalyzing ? (
+                {!isPaid ? (
+                  <div className="text-center py-8">
+                    <Brain className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                    <p className="text-lg font-medium mb-2">Ready for AI Analysis</p>
+                    <p className="text-sm text-gray-400 mb-6">
+                      Our AI will analyze your pitch and provide detailed feedback to help you create a VC-ready presentation.
+                    </p>
+                    
+                    {/* Payment Section */}
+                    <div className="border border-gray-700 p-6 rounded-lg bg-gray-800/50">
+                      <h3 className="text-lg font-semibold mb-4 text-yellow-400">Complete Payment to Analyze Pitch</h3>
+                      <PitchCreationPayment
+                        onPaymentSuccess={(paymentId) => {
+                          setIsPaid(true);
+                          setPaymentId(paymentId);
+                          console.log('Payment successful:', paymentId);
+                        }}
+                        onPaymentError={(error) => {
+                          console.error('Payment failed:', error);
+                        }}
+                      />
+                    </div>
+                  </div>
+                ) : isAnalyzing ? (
                   <div className="text-center py-12">
                     <div className="animate-spin w-12 h-12 border-4 border-purple-400 border-t-transparent rounded-full mx-auto mb-4"></div>
                     <p className="text-lg font-medium mb-2">Analyzing Your Pitch...</p>
@@ -575,7 +575,7 @@ export default function CreatePitch() {
 
                     {/* Analysis */}
                     <div>
-                      <h3 className="text-lg font-semibold mb-3 text-purple-400 flex items-center">
+                      <h3 className="text-lg font-semibold mb-3 text-white flex items-center">
                         <Sparkles className="w-5 h-5 mr-2" />
                         Detailed Analysis
                       </h3>
@@ -648,13 +648,13 @@ export default function CreatePitch() {
                   </div>
                 ) : (
                   <div className="text-center py-8">
-                    <Brain className="w-16 h-16 text-purple-400 mx-auto mb-4" />
+                    <Brain className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                     <p className="text-lg font-medium mb-2">Ready for AI Analysis</p>
                     <p className="text-sm text-gray-400 mb-6">
                       Our AI will analyze your pitch and provide detailed feedback to help you create a VC-ready presentation.
                     </p>
                     <Button
-                      className="bg-purple-500 hover:bg-purple-600"
+                      className="bg-gray-700 hover:bg-gray-600 text-white"
                       onClick={analyzePitch}
                       disabled={isAnalyzing}
                     >

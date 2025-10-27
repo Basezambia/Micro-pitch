@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { supabaseAdmin } from '@/lib/supabase';
 
 export async function POST(request: NextRequest) {
   try {
@@ -10,31 +10,50 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user already exists
-    let user = await db.user.findUnique({
-      where: { walletAddress }
-    });
+    const { data: existingUser } = await supabaseAdmin
+      .from('users')
+      .select('*')
+      .eq('wallet_address', walletAddress)
+      .single();
 
-    if (!user) {
+    let user;
+    if (!existingUser) {
       // Create new user
-      user = await db.user.create({
-        data: {
-          walletAddress,
+      const { data: newUser, error } = await supabaseAdmin
+        .from('users')
+        .insert({
+          wallet_address: walletAddress,
           email: email || null,
           name: name || null,
           role: role || 'FOUNDER'
-        }
-      });
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Supabase error:', error);
+        return NextResponse.json({ error: 'Failed to create user' }, { status: 500 });
+      }
+      user = newUser;
     } else {
       // Update existing user
-      user = await db.user.update({
-        where: { walletAddress },
-        data: {
-          email: email || user.email,
-          name: name || user.name,
-          role: role || user.role,
-          updatedAt: new Date()
-        }
-      });
+      const { data: updatedUser, error } = await supabaseAdmin
+        .from('users')
+        .update({
+          email: email || existingUser.email,
+          name: name || existingUser.name,
+          role: role || existingUser.role,
+          updated_at: new Date().toISOString()
+        })
+        .eq('wallet_address', walletAddress)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Supabase error:', error);
+        return NextResponse.json({ error: 'Failed to update user' }, { status: 500 });
+      }
+      user = updatedUser;
     }
 
     return NextResponse.json({ user });
@@ -53,17 +72,19 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Wallet address is required' }, { status: 400 });
     }
 
-    const user = await db.user.findUnique({
-      where: { walletAddress },
-      include: {
-        pitches: true,
-        investments: true,
-        sessions: true,
-        nfts: true
-      }
-    });
+    const { data: user, error } = await supabaseAdmin
+      .from('users')
+      .select(`
+        *,
+        pitches(*),
+        investments(*),
+        sessions:pitch_sessions(*),
+        nfts(*)
+      `)
+      .eq('wallet_address', walletAddress)
+      .single();
 
-    if (!user) {
+    if (error || !user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 

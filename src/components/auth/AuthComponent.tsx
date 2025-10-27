@@ -32,8 +32,8 @@ export default function AuthComponent() {
               DASHBOARD
             </Button>
           </Link>
-          <div className="text-green-400 font-medium text-sm">
-            {user.role === 'BOTH' ? 'FOUNDER & INVESTOR' : user.role}
+          <div className="text-white font-black text-lg">
+            {user.role}
           </div>
           <AuthButton />
         </div>

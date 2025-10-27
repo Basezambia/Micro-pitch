@@ -13,15 +13,20 @@ export async function POST(request: NextRequest) {
 
     const { model = 'gpt-4o-realtime-preview-2024-10-01' } = await request.json();
 
-    const response = await fetch('https://api.openai.com/v1/realtime/sessions', {
+    const response = await fetch('https://api.openai.com/v1/realtime/client_secrets', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model,
-        voice: 'alloy',
+        session: {
+          type: "realtime",
+          model,
+          audio: {
+            output: { voice: 'alloy' }
+          }
+        }
       }),
     });
 
@@ -37,7 +42,7 @@ export async function POST(request: NextRequest) {
     const session = await response.json();
     
     return NextResponse.json({
-      client_secret: session.client_secret,
+      client_secret: session.value,
     });
   } catch (error) {
     console.error('Error creating voice session:', error);
